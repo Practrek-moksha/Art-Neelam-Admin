@@ -7,6 +7,7 @@ import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
 import Students from "./pages/Students";
+import StudentProfile from "./pages/StudentProfile";
 import Attendance from "./pages/Attendance";
 import Payments from "./pages/Payments";
 import Expenses from "./pages/Expenses";
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/" element={<Layout><Dashboard /></Layout>} />
           <Route path="/leads" element={<Layout><Leads /></Layout>} />
           <Route path="/students" element={<Layout><Students /></Layout>} />
+          <Route path="/students/:id" element={<Layout><StudentProfile /></Layout>} />
           <Route path="/attendance" element={<Layout><Attendance /></Layout>} />
           <Route path="/payments" element={<Layout><Payments /></Layout>} />
           <Route path="/expenses" element={<Layout><Expenses /></Layout>} />

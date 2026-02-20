@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DUMMY_STUDENTS, Student, BATCHES } from "@/data/dummy";
-import { Search, Plus, IdCard, Phone, ChevronRight, X } from "lucide-react";
+import { Search, Plus, ChevronRight, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -84,7 +84,7 @@ export default function Students() {
       {/* Student Cards */}
       <div className="space-y-2">
         {filtered.map(s => (
-          <div key={s.id} className="bg-card rounded-2xl shadow-card border border-border p-4">
+          <Link key={s.id} to={`/students/${s.id}`} className="block bg-card rounded-2xl shadow-card border border-border p-4 hover:border-primary/30 hover:shadow-active transition-all">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-primary-soft flex items-center justify-center font-display font-bold text-primary text-lg flex-shrink-0">
                 {s.name[0]}
@@ -105,16 +105,9 @@ export default function Students() {
                   Valid: {new Date(s.validityEnd).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })} • ₹{s.feeAmount.toLocaleString()}
                 </p>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <a href={`tel:${s.whatsapp}`} className="p-2 rounded-lg bg-accent hover:opacity-80 transition-opacity">
-                  <Phone className="w-3.5 h-3.5 text-accent-foreground" />
-                </a>
-                <Link to={`/id-card?id=${s.id}`} className="p-2 rounded-lg bg-secondary hover:opacity-80 transition-opacity">
-                  <IdCard className="w-3.5 h-3.5 text-secondary-foreground" />
-                </Link>
-              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
