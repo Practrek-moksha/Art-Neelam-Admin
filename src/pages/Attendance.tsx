@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { DUMMY_STUDENTS, DUMMY_ATTENDANCE, AttendanceRecord, BATCHES } from "@/data/dummy";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Send } from "lucide-react";
+import { openWhatsApp, templates } from "@/lib/whatsapp";
 
 type Status = "present" | "absent" | "late";
 
@@ -39,6 +40,13 @@ export default function Attendance() {
       }
       return [...prev, { studentId, date: selectedDate, status, batch }];
     });
+  };
+
+  const sendAttendanceAlert = (studentId: string, status: Status) => {
+    const student = DUMMY_STUDENTS.find(s => s.id === studentId);
+    if (!student) return;
+    const dateStr = new Date(selectedDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+    openWhatsApp(student.whatsapp, templates.attendanceAlert(student.name, dateStr, status));
   };
 
   const filteredStudents = DUMMY_STUDENTS.filter(s =>
@@ -143,6 +151,13 @@ export default function Attendance() {
                       {statusConfig[s].label}
                     </button>
                   ))}
+                  {status && (
+                    <button onClick={() => sendAttendanceAlert(student.id, status)}
+                      className="w-9 h-9 rounded-xl bg-primary-soft text-primary text-xs hover:opacity-80 transition-all flex items-center justify-center"
+                      title="Send WhatsApp alert">
+                      <Send className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

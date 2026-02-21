@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { DUMMY_NOTICES, Notice } from "@/data/dummy";
-import { Plus, Bell, X, Trash2 } from "lucide-react";
+import { Plus, Bell, X, Trash2, Send } from "lucide-react";
+import { openWhatsApp, templates } from "@/lib/whatsapp";
+import { DUMMY_STUDENTS } from "@/data/dummy";
 
 export default function Notices() {
   const [notices, setNotices] = useState<Notice[]>(DUMMY_NOTICES);
@@ -55,9 +57,17 @@ export default function Notices() {
                   </p>
                 </div>
               </div>
-              <button onClick={() => deleteNotice(n.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0">
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex gap-1 flex-shrink-0">
+                <button onClick={() => {
+                  DUMMY_STUDENTS.forEach(s => openWhatsApp(s.whatsapp, templates.notice(n.title, n.body)));
+                }}
+                  className="p-1.5 rounded-lg hover:bg-primary-soft text-muted-foreground hover:text-primary transition-colors" title="Broadcast via WhatsApp">
+                  <Send className="w-4 h-4" />
+                </button>
+                <button onClick={() => deleteNotice(n.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         ))}

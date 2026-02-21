@@ -2,6 +2,7 @@ import { useState } from "react";
 import { DUMMY_LEADS, Lead, LeadStatus } from "@/data/dummy";
 import { Phone, MessageCircle, Plus, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { openWhatsApp, templates } from "@/lib/whatsapp";
 
 type Column = { key: LeadStatus; label: string; color: string; textColor: string };
 
@@ -156,9 +157,9 @@ export default function Leads() {
                         <a href={`tel:${lead.phone}`} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80 transition-opacity">
                           <Phone className="w-3 h-3" /> Call
                         </a>
-                        <a href={`https://wa.me/91${lead.phone}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80 transition-opacity">
+                        <button onClick={() => openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course))} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80 transition-opacity">
                           <MessageCircle className="w-3 h-3" /> WA
-                        </a>
+                        </button>
                       </div>
                       {/* Move buttons */}
                       <div className="flex gap-1 mt-1.5">
@@ -201,9 +202,9 @@ export default function Leads() {
                     lead.status === "lost" ? "bg-muted text-muted-foreground" :
                     "bg-warm text-warm-foreground"
                   }`}>{lead.status}</span>
-                  <a href={`https://wa.me/91${lead.phone}`} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg hover:bg-accent transition-colors">
+                  <button onClick={() => openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course))} className="p-1.5 rounded-lg hover:bg-accent transition-colors">
                     <MessageCircle className="w-4 h-4 text-accent-vivid" />
-                  </a>
+                  </button>
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </div>
               </div>
