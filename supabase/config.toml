@@ -2,3 +2,6 @@ project_id = "mzugwrcaswfattleakpm"
 
 [functions.receive-lead]
 verify_jwt = false
+
+[functions.score-leads]
+verify_jwt = false
