@@ -1,10 +1,14 @@
-import { useState } from "react";
-import { DUMMY_STUDENTS, DUMMY_ATTENDANCE, AttendanceRecord, BATCHES } from "@/data/dummy";
+import { useState, useEffect } from "react";
+import { BATCHES } from "@/data/dummy";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Send } from "lucide-react";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type Status = "present" | "absent" | "late";
+type StudentBasic = { id: string; name: string; roll_number: string; batch: string; whatsapp: string };
+type AttendanceRow = { id: string; student_id: string; date: string; status: string; batch: string | null };
 
 const statusConfig: Record<Status, { label: string; color: string; bg: string; dot: string }> = {
   present: { label: "P", color: "text-green-700", bg: "bg-accent", dot: "bg-green-400" },
@@ -12,14 +16,28 @@ const statusConfig: Record<Status, { label: string; color: string; bg: string; d
   late: { label: "L", color: "text-amber-700", bg: "bg-warm", dot: "bg-amber-400" },
 };
 
-function formatDate(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
+function formatDate(d: Date) { return d.toISOString().slice(0, 10); }
 
 export default function Attendance() {
-  const [records, setRecords] = useState<AttendanceRecord[]>(DUMMY_ATTENDANCE);
-  const [selectedDate, setSelectedDate] = useState(formatDate(new Date("2024-02-19")));
+  const [students, setStudents] = useState<StudentBasic[]>([]);
+  const [records, setRecords] = useState<AttendanceRow[]>([]);
+  const [selectedDate, setSelectedDate] = useState(formatDate(new Date()));
   const [selectedBatch, setSelectedBatch] = useState("All");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const [sRes, aRes] = await Promise.all([
+        supabase.from("students").select("id, name, roll_number, batch, whatsapp").eq("status", "active"),
+        supabase.from("attendance").select("*"),
+      ]);
+      if (sRes.error) toast.error("Failed to load students");
+      if (aRes.error) toast.error("Failed to load attendance");
+      setStudents(sRes.data || []);
+      setRecords(aRes.data || []);
+      setLoading(false);
+    })();
+  }, []);
 
   const shiftDate = (d: number) => {
     const dt = new Date(selectedDate);
@@ -28,38 +46,37 @@ export default function Attendance() {
   };
 
   const getStatus = (studentId: string): Status | null => {
-    const r = records.find(r => r.studentId === studentId && r.date === selectedDate);
+    const r = records.find(r => r.student_id === studentId && r.date === selectedDate);
     return r ? r.status as Status : null;
   };
 
-  const markAttendance = (studentId: string, status: Status, batch: string) => {
-    setRecords(prev => {
-      const existing = prev.findIndex(r => r.studentId === studentId && r.date === selectedDate);
-      if (existing >= 0) {
-        return prev.map((r, i) => i === existing ? { ...r, status } : r);
-      }
-      return [...prev, { studentId, date: selectedDate, status, batch }];
-    });
+  const markAttendance = async (studentId: string, status: Status, batch: string) => {
+    const existing = records.find(r => r.student_id === studentId && r.date === selectedDate);
+    if (existing) {
+      setRecords(prev => prev.map(r => r.id === existing.id ? { ...r, status } : r));
+      await supabase.from("attendance").update({ status }).eq("id", existing.id);
+    } else {
+      const { data, error } = await supabase.from("attendance").insert({ student_id: studentId, date: selectedDate, status, batch }).select().single();
+      if (error) { toast.error("Failed to save"); return; }
+      setRecords(prev => [...prev, data]);
+    }
   };
 
   const sendAttendanceAlert = (studentId: string, status: Status) => {
-    const student = DUMMY_STUDENTS.find(s => s.id === studentId);
+    const student = students.find(s => s.id === studentId);
     if (!student) return;
     const dateStr = new Date(selectedDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
     openWhatsApp(student.whatsapp, templates.attendanceAlert(student.name, dateStr, status));
   };
 
-  const filteredStudents = DUMMY_STUDENTS.filter(s =>
-    selectedBatch === "All" || s.batch === selectedBatch
-  );
-
+  const filteredStudents = students.filter(s => selectedBatch === "All" || s.batch === selectedBatch);
   const presentCount = filteredStudents.filter(s => getStatus(s.id) === "present").length;
   const absentCount = filteredStudents.filter(s => getStatus(s.id) === "absent").length;
   const lateCount = filteredStudents.filter(s => getStatus(s.id) === "late").length;
 
-  const markAll = (status: Status) => {
-    filteredStudents.forEach(s => markAttendance(s.id, status, s.batch));
-  };
+  const markAll = (status: Status) => { filteredStudents.forEach(s => markAttendance(s.id, status, s.batch)); };
+
+  if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
     <div className="p-4 md:p-6 space-y-4">
@@ -68,18 +85,14 @@ export default function Attendance() {
       {/* Date Picker */}
       <div className="bg-card rounded-2xl shadow-card border border-border p-4">
         <div className="flex items-center justify-between">
-          <button onClick={() => shiftDate(-1)} className="p-2 rounded-xl hover:bg-muted transition-colors">
-            <ChevronLeft className="w-5 h-5 text-foreground" />
-          </button>
+          <button onClick={() => shiftDate(-1)} className="p-2 rounded-xl hover:bg-muted transition-colors"><ChevronLeft className="w-5 h-5 text-foreground" /></button>
           <div className="text-center">
             <p className="font-display font-bold text-foreground text-lg">
               {new Date(selectedDate).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
             </p>
             <p className="text-xs text-muted-foreground font-body">{new Date(selectedDate).getFullYear()}</p>
           </div>
-          <button onClick={() => shiftDate(1)} className="p-2 rounded-xl hover:bg-muted transition-colors">
-            <ChevronRight className="w-5 h-5 text-foreground" />
-          </button>
+          <button onClick={() => shiftDate(1)} className="p-2 rounded-xl hover:bg-muted transition-colors"><ChevronRight className="w-5 h-5 text-foreground" /></button>
         </div>
         <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
           className="w-full mt-3 px-3 py-2 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30 text-center" />
@@ -134,13 +147,11 @@ export default function Attendance() {
                   <div className="w-11 h-11 rounded-xl bg-primary-soft flex items-center justify-center font-display font-bold text-primary text-base">
                     {student.name[0]}
                   </div>
-                  {status && (
-                    <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card ${statusConfig[status].dot}`} />
-                  )}
+                  {status && <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card ${statusConfig[status].dot}`} />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold font-body text-foreground">{student.name}</p>
-                  <p className="text-[10px] text-muted-foreground font-body">{student.rollNumber} • {student.batch}</p>
+                  <p className="text-[10px] text-muted-foreground font-body">{student.roll_number} • {student.batch}</p>
                 </div>
                 <div className="flex gap-1.5">
                   {(["present", "absent", "late"] as Status[]).map(s => (
@@ -153,8 +164,7 @@ export default function Attendance() {
                   ))}
                   {status && (
                     <button onClick={() => sendAttendanceAlert(student.id, status)}
-                      className="w-9 h-9 rounded-xl bg-primary-soft text-primary text-xs hover:opacity-80 transition-all flex items-center justify-center"
-                      title="Send WhatsApp alert">
+                      className="w-9 h-9 rounded-xl bg-primary-soft text-primary text-xs hover:opacity-80 transition-all flex items-center justify-center" title="Send WhatsApp alert">
                       <Send className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -163,35 +173,7 @@ export default function Attendance() {
             </div>
           );
         })}
-      </div>
-
-      {/* Attendance History Summary */}
-      <div className="bg-card rounded-2xl shadow-card border border-border p-4">
-        <h3 className="font-display font-bold text-foreground text-base mb-3">Student Attendance %</h3>
-        <div className="space-y-3">
-          {DUMMY_STUDENTS.map(s => {
-            const totalDays = [...new Set(records.map(r => r.date))].length;
-            const presentDays = records.filter(r => r.studentId === s.id && r.status === "present").length;
-            const pct = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
-            return (
-              <div key={s.id} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-primary-soft flex items-center justify-center font-display font-bold text-primary text-xs flex-shrink-0">
-                  {s.name[0]}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs font-semibold font-body text-foreground truncate">{s.name}</p>
-                    <span className={`text-xs font-bold font-body ml-2 ${pct >= 75 ? "text-accent-vivid" : pct >= 50 ? "text-warm-vivid" : "text-destructive"}`}>{pct}%</span>
-                  </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all ${pct >= 75 ? "bg-accent-vivid" : pct >= 50 ? "bg-warm-vivid" : "bg-destructive"}`}
-                      style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {filteredStudents.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">No students found.</p>}
       </div>
     </div>
   );

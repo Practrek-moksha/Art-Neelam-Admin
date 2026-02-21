@@ -1,8 +1,10 @@
-import { useState } from "react";
-import { DUMMY_STUDENTS, Student, BATCHES } from "@/data/dummy";
+import { useState, useEffect } from "react";
+import { BATCHES } from "@/data/dummy";
 import { Search, Plus, ChevronRight, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const courseColors: Record<string, string> = {
   Basic: "bg-accent text-accent-foreground",
@@ -10,37 +12,71 @@ const courseColors: Record<string, string> = {
   Professional: "bg-primary-soft text-primary",
 };
 
+type Student = {
+  id: string;
+  roll_number: string;
+  name: string;
+  course: string;
+  batch: string;
+  status: string;
+  validity_end: string | null;
+  fee_amount: number;
+  whatsapp: string;
+  dob: string | null;
+};
+
 export default function Students() {
-  const [students, setStudents] = useState<Student[]>(DUMMY_STUDENTS);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [batchFilter, setBatchFilter] = useState("All");
   const [showForm, setShowForm] = useState(false);
 
   const [form, setForm] = useState({
-    name: "", dob: "", schoolName: "", address: "", emergencyContact: "",
-    fatherName: "", fatherContact: "", motherName: "", motherContact: "",
-    guardianName: "", whatsapp: "", email: "", course: "Basic" as const,
-    batch: "Morning A", enrollmentDate: "", validityStart: "", validityEnd: "",
-    totalSessions: 48, feeAmount: 12000, paymentPlan: "Monthly",
+    name: "", dob: "", school_name: "", address: "", emergency_contact: "",
+    father_name: "", father_contact: "", mother_name: "", mother_contact: "",
+    guardian_name: "", whatsapp: "", email: "", course: "Basic",
+    batch: "Morning A", enrollment_date: "", validity_start: "", validity_end: "",
+    total_sessions: 48, fee_amount: 12000, payment_plan: "Monthly",
   });
+
+  const fetchStudents = async () => {
+    const { data, error } = await supabase.from("students").select("id, roll_number, name, course, batch, status, validity_end, fee_amount, whatsapp, dob").order("created_at", { ascending: false });
+    if (error) { toast.error("Failed to load students"); console.error(error); }
+    else setStudents(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchStudents(); }, []);
 
   const filtered = students.filter(s => {
     const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.rollNumber.toLowerCase().includes(search.toLowerCase());
+      s.roll_number.toLowerCase().includes(search.toLowerCase());
     const matchBatch = batchFilter === "All" || s.batch === batchFilter;
     return matchSearch && matchBatch;
   });
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.name || !form.whatsapp) return;
-    const newRoll = `NAS-${String(students.length + 1).padStart(4, "0")}`;
-    const id = `S${String(students.length + 1).padStart(3, "0")}`;
-    setStudents(prev => [...prev, {
-      ...form, id, rollNumber: newRoll, status: "active",
-      totalSessions: Number(form.totalSessions), feeAmount: Number(form.feeAmount),
-    }]);
-    setShowForm(false);
+    const { error } = await supabase.from("students").insert({
+      name: form.name, whatsapp: form.whatsapp, dob: form.dob || null,
+      school_name: form.school_name || null, address: form.address || null,
+      emergency_contact: form.emergency_contact || null,
+      father_name: form.father_name || null, father_contact: form.father_contact || null,
+      mother_name: form.mother_name || null, mother_contact: form.mother_contact || null,
+      guardian_name: form.guardian_name || null, email: form.email || null,
+      course: form.course, batch: form.batch,
+      enrollment_date: form.enrollment_date || null,
+      validity_start: form.validity_start || null, validity_end: form.validity_end || null,
+      total_sessions: Number(form.total_sessions), fee_amount: Number(form.fee_amount),
+      payment_plan: form.payment_plan,
+      roll_number: "TEMP", // trigger will auto-generate
+    });
+    if (error) { toast.error("Failed to add student: " + error.message); console.error(error); }
+    else { toast.success("Student registered!"); setShowForm(false); fetchStudents(); }
   };
+
+  if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
     <div className="p-4 md:p-6 space-y-4">
@@ -92,23 +128,24 @@ export default function Students() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-bold text-foreground font-body text-sm">{s.name}</p>
-                  <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{s.rollNumber}</span>
+                  <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{s.roll_number}</span>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${courseColors[s.course]}`}>{s.course}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${courseColors[s.course] || ""}`}>{s.course}</span>
                   <span className="text-[10px] text-muted-foreground font-body">{s.batch}</span>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${s.status === "active" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>
                     {s.status}
                   </span>
                 </div>
                 <p className="text-[10px] text-muted-foreground font-body mt-0.5">
-                  Valid: {new Date(s.validityEnd).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })} • ₹{s.feeAmount.toLocaleString()}
+                  {s.validity_end ? `Valid: ${new Date(s.validity_end).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}` : ""} • ₹{s.fee_amount.toLocaleString()}
                 </p>
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             </div>
           </Link>
         ))}
+        {filtered.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">No students found. Add your first student!</p>}
       </div>
 
       {/* Add Student Modal */}
@@ -123,23 +160,23 @@ export default function Students() {
               <Section title="Personal Info">
                 <FormField label="Student Name*" value={form.name} onChange={v => setForm(p => ({ ...p, name: v }))} />
                 <FormField label="Date of Birth" type="date" value={form.dob} onChange={v => setForm(p => ({ ...p, dob: v }))} />
-                <FormField label="School Name" value={form.schoolName} onChange={v => setForm(p => ({ ...p, schoolName: v }))} />
+                <FormField label="School Name" value={form.school_name} onChange={v => setForm(p => ({ ...p, school_name: v }))} />
                 <FormField label="Address" value={form.address} onChange={v => setForm(p => ({ ...p, address: v }))} textarea />
-                <FormField label="Emergency Contact" type="tel" value={form.emergencyContact} onChange={v => setForm(p => ({ ...p, emergencyContact: v }))} />
+                <FormField label="Emergency Contact" type="tel" value={form.emergency_contact} onChange={v => setForm(p => ({ ...p, emergency_contact: v }))} />
               </Section>
               <Section title="Parent / Guardian">
-                <FormField label="Father Name" value={form.fatherName} onChange={v => setForm(p => ({ ...p, fatherName: v }))} />
-                <FormField label="Father Contact" type="tel" value={form.fatherContact} onChange={v => setForm(p => ({ ...p, fatherContact: v }))} />
-                <FormField label="Mother Name" value={form.motherName} onChange={v => setForm(p => ({ ...p, motherName: v }))} />
-                <FormField label="Mother Contact" type="tel" value={form.motherContact} onChange={v => setForm(p => ({ ...p, motherContact: v }))} />
-                <FormField label="Guardian Name (optional)" value={form.guardianName} onChange={v => setForm(p => ({ ...p, guardianName: v }))} />
+                <FormField label="Father Name" value={form.father_name} onChange={v => setForm(p => ({ ...p, father_name: v }))} />
+                <FormField label="Father Contact" type="tel" value={form.father_contact} onChange={v => setForm(p => ({ ...p, father_contact: v }))} />
+                <FormField label="Mother Name" value={form.mother_name} onChange={v => setForm(p => ({ ...p, mother_name: v }))} />
+                <FormField label="Mother Contact" type="tel" value={form.mother_contact} onChange={v => setForm(p => ({ ...p, mother_contact: v }))} />
+                <FormField label="Guardian Name (optional)" value={form.guardian_name} onChange={v => setForm(p => ({ ...p, guardian_name: v }))} />
                 <FormField label="WhatsApp Number*" type="tel" value={form.whatsapp} onChange={v => setForm(p => ({ ...p, whatsapp: v }))} />
                 <FormField label="Email" type="email" value={form.email} onChange={v => setForm(p => ({ ...p, email: v }))} />
               </Section>
               <Section title="Course Details">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground font-body">Course</label>
-                  <select value={form.course} onChange={e => setForm(p => ({ ...p, course: e.target.value as any }))}
+                  <select value={form.course} onChange={e => setForm(p => ({ ...p, course: e.target.value }))}
                     className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
                     {["Basic", "Advanced", "Professional"].map(c => <option key={c}>{c}</option>)}
                   </select>
@@ -151,14 +188,14 @@ export default function Students() {
                     {BATCHES.map(b => <option key={b}>{b}</option>)}
                   </select>
                 </div>
-                <FormField label="Enrollment Date" type="date" value={form.enrollmentDate} onChange={v => setForm(p => ({ ...p, enrollmentDate: v }))} />
-                <FormField label="Validity Start" type="date" value={form.validityStart} onChange={v => setForm(p => ({ ...p, validityStart: v }))} />
-                <FormField label="Validity End" type="date" value={form.validityEnd} onChange={v => setForm(p => ({ ...p, validityEnd: v }))} />
-                <FormField label="Total Sessions" type="number" value={String(form.totalSessions)} onChange={v => setForm(p => ({ ...p, totalSessions: Number(v) }))} />
-                <FormField label="Fee Amount (₹)" type="number" value={String(form.feeAmount)} onChange={v => setForm(p => ({ ...p, feeAmount: Number(v) }))} />
+                <FormField label="Enrollment Date" type="date" value={form.enrollment_date} onChange={v => setForm(p => ({ ...p, enrollment_date: v }))} />
+                <FormField label="Validity Start" type="date" value={form.validity_start} onChange={v => setForm(p => ({ ...p, validity_start: v }))} />
+                <FormField label="Validity End" type="date" value={form.validity_end} onChange={v => setForm(p => ({ ...p, validity_end: v }))} />
+                <FormField label="Total Sessions" type="number" value={String(form.total_sessions)} onChange={v => setForm(p => ({ ...p, total_sessions: Number(v) }))} />
+                <FormField label="Fee Amount (₹)" type="number" value={String(form.fee_amount)} onChange={v => setForm(p => ({ ...p, fee_amount: Number(v) }))} />
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground font-body">Payment Plan</label>
-                  <select value={form.paymentPlan} onChange={e => setForm(p => ({ ...p, paymentPlan: e.target.value }))}
+                  <select value={form.payment_plan} onChange={e => setForm(p => ({ ...p, payment_plan: e.target.value }))}
                     className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
                     {["Monthly", "Quarterly", "Lump Sum", "Custom"].map(p => <option key={p}>{p}</option>)}
                   </select>

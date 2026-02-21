@@ -1,8 +1,26 @@
-import { useState } from "react";
-import { DUMMY_LEADS, Lead, LeadStatus } from "@/data/dummy";
-import { Phone, MessageCircle, Plus, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Phone, MessageCircle, Plus, ChevronRight, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+type LeadStatus = "new" | "follow-up" | "demo" | "converted" | "lost";
+
+type Lead = {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  course: string | null;
+  status: string;
+  source: string | null;
+  follow_up_date: string | null;
+  created_at: string;
+  notes: string | null;
+};
+
+type LeadScore = { id: string; score: number; reason: string };
 
 type Column = { key: LeadStatus; label: string; color: string; textColor: string };
 
@@ -15,32 +33,69 @@ const columns: Column[] = [
 ];
 
 const statusDot: Record<LeadStatus, string> = {
-  new: "bg-blue-400",
-  "follow-up": "bg-amber-400",
-  demo: "bg-purple-400",
-  converted: "bg-green-400",
-  lost: "bg-red-400",
+  new: "bg-blue-400", "follow-up": "bg-amber-400", demo: "bg-purple-400", converted: "bg-green-400", lost: "bg-red-400",
 };
 
 export default function Leads() {
-  const [leads, setLeads] = useState<Lead[]>(DUMMY_LEADS);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [scores, setScores] = useState<LeadScore[]>([]);
+  const [scoring, setScoring] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<LeadStatus | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [view, setView] = useState<"kanban" | "list">("kanban");
-  const [newLead, setNewLead] = useState({ name: "", phone: "", email: "", course: "Basic" as const, status: "new" as LeadStatus, source: "Website", notes: "", followUpDate: "" });
+  const [newLead, setNewLead] = useState({ name: "", phone: "", email: "", course: "Basic", source: "Website", notes: "", follow_up_date: "" });
 
-  const moveCard = (leadId: string, toStatus: LeadStatus) => {
+  const fetchLeads = async () => {
+    const { data, error } = await supabase.from("leads").select("*").order("created_at", { ascending: false });
+    if (error) { toast.error("Failed to load leads"); console.error(error); }
+    else setLeads(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchLeads(); }, []);
+
+  const moveCard = async (leadId: string, toStatus: LeadStatus) => {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: toStatus } : l));
+    const { error } = await supabase.from("leads").update({ status: toStatus }).eq("id", leadId);
+    if (error) { toast.error("Failed to update status"); fetchLeads(); }
   };
 
-  const addLead = () => {
+  const addLead = async () => {
     if (!newLead.name || !newLead.phone) return;
-    const id = `L${String(leads.length + 1).padStart(3, "0")}`;
-    setLeads(prev => [...prev, { ...newLead, id, createdAt: new Date().toISOString().slice(0, 10), followUpDate: newLead.followUpDate || new Date().toISOString().slice(0, 10) }]);
-    setShowForm(false);
-    setNewLead({ name: "", phone: "", email: "", course: "Basic", status: "new", source: "Website", notes: "", followUpDate: "" });
+    const { error } = await supabase.from("leads").insert({
+      name: newLead.name, phone: newLead.phone || null, email: newLead.email || null,
+      course: newLead.course, source: newLead.source, notes: newLead.notes || null,
+      follow_up_date: newLead.follow_up_date || null, status: "new",
+    });
+    if (error) { toast.error("Failed to add lead: " + error.message); }
+    else { toast.success("Lead added!"); setShowForm(false); setNewLead({ name: "", phone: "", email: "", course: "Basic", source: "Website", notes: "", follow_up_date: "" }); fetchLeads(); }
   };
+
+  const runAIScoring = async () => {
+    setScoring(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/score-leads`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+      });
+      const result = await resp.json();
+      if (result.error) throw new Error(result.error);
+      setScores(result.scores || []);
+      toast.success(`Scored ${result.scores?.length || 0} leads with AI`);
+    } catch (e: any) {
+      toast.error(e.message || "AI scoring failed");
+    } finally { setScoring(false); }
+  };
+
+  const getScore = (id: string) => scores.find(s => s.id === id);
+
+  if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
     <div className="p-4 md:p-6 space-y-4 h-full flex flex-col">
@@ -51,6 +106,10 @@ export default function Leads() {
           <p className="text-sm text-muted-foreground font-body">{leads.length} total leads</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={runAIScoring} disabled={scoring}
+            className="flex items-center gap-1.5 px-3 py-2 bg-secondary text-secondary-foreground rounded-xl text-xs font-semibold hover:opacity-90 transition-all disabled:opacity-50">
+            {scoring ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} AI Score
+          </button>
           <div className="flex bg-muted rounded-lg p-1">
             {(["kanban", "list"] as const).map(v => (
               <button key={v} onClick={() => setView(v)}
@@ -76,7 +135,7 @@ export default function Leads() {
                 { label: "Full Name*", key: "name", type: "text" },
                 { label: "Phone*", key: "phone", type: "tel" },
                 { label: "Email", key: "email", type: "email" },
-                { label: "Follow-up Date", key: "followUpDate", type: "date" },
+                { label: "Follow-up Date", key: "follow_up_date", type: "date" },
               ].map(f => (
                 <div key={f.key}>
                   <label className="text-xs font-semibold text-muted-foreground font-body">{f.label}</label>
@@ -88,7 +147,7 @@ export default function Leads() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground font-body">Course</label>
-                  <select value={newLead.course} onChange={e => setNewLead(p => ({ ...p, course: e.target.value as any }))}
+                  <select value={newLead.course} onChange={e => setNewLead(p => ({ ...p, course: e.target.value }))}
                     className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
                     {["Basic", "Advanced", "Professional"].map(c => <option key={c}>{c}</option>)}
                   </select>
@@ -134,47 +193,51 @@ export default function Leads() {
                   <span className="text-xs bg-card/60 rounded-full px-2 py-0.5 font-semibold font-body text-muted-foreground">{colLeads.length}</span>
                 </div>
                 <div className="space-y-2">
-                  {colLeads.map(lead => (
-                    <div key={lead.id}
-                      draggable
-                      onDragStart={() => setDragging(lead.id)}
-                      onDragEnd={() => { setDragging(null); setDragOver(null); }}
-                      className={cn("bg-card rounded-xl p-3 shadow-sm cursor-grab active:cursor-grabbing transition-all", dragging === lead.id && "opacity-50 rotate-2")}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center font-display font-bold text-secondary-foreground text-sm flex-shrink-0">
-                          {lead.name[0]}
+                  {colLeads.map(lead => {
+                    const sc = getScore(lead.id);
+                    return (
+                      <div key={lead.id} draggable onDragStart={() => setDragging(lead.id)} onDragEnd={() => { setDragging(null); setDragOver(null); }}
+                        className={cn("bg-card rounded-xl p-3 shadow-sm cursor-grab active:cursor-grabbing transition-all", dragging === lead.id && "opacity-50 rotate-2")}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center font-display font-bold text-secondary-foreground text-sm flex-shrink-0">
+                            {lead.name[0]}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-foreground font-body truncate">{lead.name}</p>
+                            <p className="text-[10px] text-muted-foreground font-body">{lead.course}</p>
+                          </div>
+                          {sc && (
+                            <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                              sc.score >= 70 ? "bg-accent text-accent-foreground" : sc.score >= 40 ? "bg-warm text-warm-foreground" : "bg-muted text-muted-foreground")}>
+                              {sc.score}
+                            </span>
+                          )}
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-foreground font-body truncate">{lead.name}</p>
-                          <p className="text-[10px] text-muted-foreground font-body">{lead.course}</p>
-                        </div>
-                      </div>
-                      {lead.notes && <p className="text-[10px] text-muted-foreground font-body mb-2 line-clamp-2">{lead.notes}</p>}
-                      {lead.followUpDate && (
-                        <p className="text-[10px] text-primary font-semibold mb-2 font-body">📅 {new Date(lead.followUpDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p>
-                      )}
-                      <div className="flex gap-1.5">
-                        <a href={`tel:${lead.phone}`} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80 transition-opacity">
-                          <Phone className="w-3 h-3" /> Call
-                        </a>
-                        <button onClick={() => openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course))} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80 transition-opacity">
-                          <MessageCircle className="w-3 h-3" /> WA
-                        </button>
-                      </div>
-                      {/* Move buttons */}
-                      <div className="flex gap-1 mt-1.5">
-                        {columns.filter(c => c.key !== col.key).slice(0, 2).map(c => (
-                          <button key={c.key} onClick={() => moveCard(lead.id, c.key)}
-                            className="flex-1 text-[9px] py-1 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors font-body">
-                            → {c.label}
+                        {sc && <p className="text-[10px] text-primary font-body mb-1">🤖 {sc.reason}</p>}
+                        {lead.notes && <p className="text-[10px] text-muted-foreground font-body mb-2 line-clamp-2">{lead.notes}</p>}
+                        {lead.follow_up_date && (
+                          <p className="text-[10px] text-primary font-semibold mb-2 font-body">📅 {new Date(lead.follow_up_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p>
+                        )}
+                        <div className="flex gap-1.5">
+                          <a href={`tel:${lead.phone}`} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80 transition-opacity">
+                            <Phone className="w-3 h-3" /> Call
+                          </a>
+                          <button onClick={() => lead.phone && openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course || ""))} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80 transition-opacity">
+                            <MessageCircle className="w-3 h-3" /> WA
                           </button>
-                        ))}
+                        </div>
+                        <div className="flex gap-1 mt-1.5">
+                          {columns.filter(c => c.key !== col.key).slice(0, 2).map(c => (
+                            <button key={c.key} onClick={() => moveCard(lead.id, c.key)}
+                              className="flex-1 text-[9px] py-1 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors font-body">
+                              → {c.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                  {colLeads.length === 0 && (
-                    <div className="text-center py-6 text-xs text-muted-foreground font-body opacity-70">Drop here</div>
-                  )}
+                    );
+                  })}
+                  {colLeads.length === 0 && <div className="text-center py-6 text-xs text-muted-foreground font-body opacity-70">Drop here</div>}
                 </div>
               </div>
             );
@@ -186,29 +249,33 @@ export default function Leads() {
       {view === "list" && (
         <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden flex-1">
           <div className="divide-y divide-border">
-            {leads.map(lead => (
-              <div key={lead.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
-                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center font-display font-bold text-secondary-foreground flex-shrink-0">
-                  {lead.name[0]}
+            {leads.map(lead => {
+              const sc = getScore(lead.id);
+              return (
+                <div key={lead.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center font-display font-bold text-secondary-foreground flex-shrink-0">
+                    {lead.name[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground font-body">{lead.name}</p>
+                    <p className="text-xs text-muted-foreground font-body">{lead.phone} • {lead.course} • {lead.source}</p>
+                    {sc && <p className="text-[10px] text-primary font-body">Score: {sc.score} — {sc.reason}</p>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${
+                      lead.status === "converted" ? "bg-accent text-accent-foreground" :
+                      lead.status === "new" ? "bg-secondary text-secondary-foreground" :
+                      lead.status === "lost" ? "bg-muted text-muted-foreground" :
+                      "bg-warm text-warm-foreground"
+                    }`}>{lead.status}</span>
+                    <button onClick={() => lead.phone && openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course || ""))} className="p-1.5 rounded-lg hover:bg-accent transition-colors">
+                      <MessageCircle className="w-4 h-4 text-accent-vivid" />
+                    </button>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground font-body">{lead.name}</p>
-                  <p className="text-xs text-muted-foreground font-body">{lead.phone} • {lead.course} • {lead.source}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${
-                    lead.status === "converted" ? "bg-accent text-accent-foreground" :
-                    lead.status === "new" ? "bg-secondary text-secondary-foreground" :
-                    lead.status === "lost" ? "bg-muted text-muted-foreground" :
-                    "bg-warm text-warm-foreground"
-                  }`}>{lead.status}</span>
-                  <button onClick={() => openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course))} className="p-1.5 rounded-lg hover:bg-accent transition-colors">
-                    <MessageCircle className="w-4 h-4 text-accent-vivid" />
-                  </button>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
