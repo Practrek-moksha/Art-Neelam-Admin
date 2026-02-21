@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { DUMMY_PAYMENTS, Payment, DUMMY_STUDENTS } from "@/data/dummy";
-import { Plus, Search, TrendingUp, X } from "lucide-react";
+import { Plus, Search, TrendingUp, X, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { openWhatsApp, templates } from "@/lib/whatsapp";
 
 const statusColors = {
   paid: "bg-accent text-accent-foreground",
@@ -93,6 +94,15 @@ export default function Payments() {
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${statusColors[p.status]}`}>{p.status}</span>
               </div>
             </div>
+            {p.status === "pending" && (
+              <button onClick={() => {
+                const student = DUMMY_STUDENTS.find(s => s.id === p.studentId);
+                if (student) openWhatsApp(student.whatsapp, templates.feeReminder(p.studentName, p.amount));
+              }}
+                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-warm text-warm-foreground text-[10px] font-semibold hover:opacity-80 transition-opacity">
+                <Send className="w-3 h-3" /> Send Fee Reminder via WhatsApp
+              </button>
+            )}
           </div>
         ))}
       </div>

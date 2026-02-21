@@ -1,6 +1,7 @@
 import { DUMMY_LEADS, DUMMY_STUDENTS, DUMMY_PAYMENTS, DUMMY_ATTENDANCE, DUMMY_NOTICES } from "@/data/dummy";
 import { Users, UserPlus, IndianRupee, CalendarCheck, Cake, TrendingUp, MessageCircle, Phone, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
+import { openWhatsApp, templates } from "@/lib/whatsapp";
 
 const today = new Date();
 
@@ -127,9 +128,9 @@ export default function Dashboard() {
                   <a href={`tel:${lead.phone}`} className="p-1.5 rounded-lg hover:bg-accent transition-colors">
                     <Phone className="w-3.5 h-3.5 text-accent-vivid" />
                   </a>
-                  <a href={`https://wa.me/91${lead.phone}`} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg hover:bg-accent transition-colors">
+                  <button onClick={() => openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course))} className="p-1.5 rounded-lg hover:bg-accent transition-colors">
                     <MessageCircle className="w-3.5 h-3.5 text-accent-vivid" />
-                  </a>
+                  </button>
                 </div>
               </div>
             ))}
