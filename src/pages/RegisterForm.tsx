@@ -1,9 +1,13 @@
 import { useState } from "react";
-import { BATCHES } from "@/data/dummy";
+import { supabase } from "@/integrations/supabase/client";
 import { Palette, CheckCircle } from "lucide-react";
+
+const BATCHES = ["Morning A", "Morning B", "Evening A", "Evening B", "Weekend"];
 
 export default function RegisterForm() {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [form, setForm] = useState({
     name: "", dob: "", schoolName: "", address: "", emergencyContact: "",
     fatherName: "", fatherContact: "", motherName: "", motherContact: "",
@@ -11,10 +15,39 @@ export default function RegisterForm() {
     batch: "Morning A", agreedTerms: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.whatsapp || !form.agreedTerms) return;
-    setSubmitted(true);
+    setLoading(true);
+    setError("");
+
+    try {
+      // Insert as a lead in the database
+      const { error: leadErr } = await supabase.from("leads").insert({
+        name: form.name,
+        phone: form.whatsapp,
+        email: form.email || null,
+        course: form.course,
+        status: "new",
+        source: "Registration Form",
+        notes: [
+          form.fatherName && `Father: ${form.fatherName} (${form.fatherContact})`,
+          form.motherName && `Mother: ${form.motherName} (${form.motherContact})`,
+          form.guardianName && `Guardian: ${form.guardianName}`,
+          form.schoolName && `School: ${form.schoolName}`,
+          form.address && `Address: ${form.address}`,
+          `Batch: ${form.batch}`,
+          form.dob && `DOB: ${form.dob}`,
+        ].filter(Boolean).join(" | "),
+      });
+
+      if (leadErr) throw leadErr;
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -109,9 +142,11 @@ export default function RegisterForm() {
           </label>
         </div>
 
-        <button type="submit" disabled={!form.agreedTerms || !form.name || !form.whatsapp}
+        {error && <p className="text-xs text-destructive font-body bg-destructive/10 px-3 py-2 rounded-lg">{error}</p>}
+
+        <button type="submit" disabled={!form.agreedTerms || !form.name || !form.whatsapp || loading}
           className="w-full py-4 rounded-2xl gradient-primary text-primary-foreground font-bold font-body text-base shadow-active hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
-          Submit Registration
+          {loading ? "Submitting..." : "Submit Registration"}
         </button>
       </form>
     </div>
