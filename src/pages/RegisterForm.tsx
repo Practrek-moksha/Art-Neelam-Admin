@@ -4,10 +4,16 @@ import { Palette, CheckCircle } from "lucide-react";
 
 const BATCHES = ["Morning A", "Morning B", "Evening A", "Evening B", "Weekend"];
 
+function isValidIndianPhone(phone: string): boolean {
+  const cleaned = phone.replace(/[\s\-()]/g, "");
+  return /^(\+91)?[6-9]\d{9}$/.test(cleaned);
+}
+
 export default function RegisterForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [form, setForm] = useState({
     name: "", dob: "", schoolName: "", address: "", emergencyContact: "",
     fatherName: "", fatherContact: "", motherName: "", motherContact: "",
@@ -15,33 +21,51 @@ export default function RegisterForm() {
     batch: "Morning A", agreedTerms: false,
   });
 
+  const validatePhone = (phone: string) => {
+    if (!phone) {
+      setPhoneError("WhatsApp number is required");
+      return false;
+    }
+    if (!isValidIndianPhone(phone)) {
+      setPhoneError("Enter a valid 10-digit Indian number (starting with 6-9)");
+      return false;
+    }
+    setPhoneError("");
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.whatsapp || !form.agreedTerms) return;
+    if (!form.name || !form.agreedTerms) return;
+    if (!validatePhone(form.whatsapp)) return;
+
     setLoading(true);
     setError("");
 
     try {
-      // Insert as a lead in the database
-      const { error: leadErr } = await supabase.from("leads").insert({
-        name: form.name,
-        phone: form.whatsapp,
-        email: form.email || null,
-        course: form.course,
-        status: "new",
-        source: "Registration Form",
-        notes: [
-          form.fatherName && `Father: ${form.fatherName} (${form.fatherContact})`,
-          form.motherName && `Mother: ${form.motherName} (${form.motherContact})`,
-          form.guardianName && `Guardian: ${form.guardianName}`,
-          form.schoolName && `School: ${form.schoolName}`,
-          form.address && `Address: ${form.address}`,
-          `Batch: ${form.batch}`,
-          form.dob && `DOB: ${form.dob}`,
-        ].filter(Boolean).join(" | "),
+      const notes = [
+        form.fatherName && `Father: ${form.fatherName} (${form.fatherContact})`,
+        form.motherName && `Mother: ${form.motherName} (${form.motherContact})`,
+        form.guardianName && `Guardian: ${form.guardianName}`,
+        form.schoolName && `School: ${form.schoolName}`,
+        form.address && `Address: ${form.address}`,
+        `Batch: ${form.batch}`,
+        form.dob && `DOB: ${form.dob}`,
+      ].filter(Boolean).join(" | ");
+
+      const { data, error: fnError } = await supabase.functions.invoke("submit-registration", {
+        body: {
+          name: form.name.trim(),
+          phone: form.whatsapp,
+          email: form.email || null,
+          course: form.course,
+          notes,
+        },
       });
 
-      if (leadErr) throw leadErr;
+      if (fnError) throw new Error(fnError.message || "Submission failed");
+      if (data?.error) throw new Error(data.error);
+
       setSubmitted(true);
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
@@ -72,7 +96,6 @@ export default function RegisterForm() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <div className="gradient-primary px-5 py-6 pt-safe">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
@@ -100,7 +123,22 @@ export default function RegisterForm() {
           <Field label="Mother's Name" type="text" value={form.motherName} onChange={v => setForm(p => ({ ...p, motherName: v }))} placeholder="Mother's full name" />
           <Field label="Mother's Contact" type="tel" value={form.motherContact} onChange={v => setForm(p => ({ ...p, motherContact: v }))} placeholder="Mother's phone" />
           <Field label="Guardian Name (Optional)" type="text" value={form.guardianName} onChange={v => setForm(p => ({ ...p, guardianName: v }))} placeholder="If applicable" />
-          <Field label="WhatsApp Number*" type="tel" value={form.whatsapp} onChange={v => setForm(p => ({ ...p, whatsapp: v }))} placeholder="Active WhatsApp number" required />
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground font-body">WhatsApp Number*</label>
+            <input
+              type="tel"
+              value={form.whatsapp}
+              onChange={e => {
+                setForm(p => ({ ...p, whatsapp: e.target.value }));
+                if (phoneError) validatePhone(e.target.value);
+              }}
+              onBlur={() => form.whatsapp && validatePhone(form.whatsapp)}
+              placeholder="e.g. 9920546217"
+              required
+              className={`w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30 ${phoneError ? "border-destructive" : "border-border"}`}
+            />
+            {phoneError && <p className="text-xs text-destructive font-body mt-1">{phoneError}</p>}
+          </div>
           <Field label="Email Address" type="email" value={form.email} onChange={v => setForm(p => ({ ...p, email: v }))} placeholder="Email (optional)" />
         </FormSection>
 
@@ -125,7 +163,6 @@ export default function RegisterForm() {
           </div>
         </FormSection>
 
-        {/* Terms */}
         <div className="bg-muted rounded-2xl p-4">
           <h3 className="font-display font-bold text-foreground text-sm mb-2">Terms & Conditions</h3>
           <div className="text-[11px] text-muted-foreground font-body space-y-1 mb-3 max-h-24 overflow-y-auto">
