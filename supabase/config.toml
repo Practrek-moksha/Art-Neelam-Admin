@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.score-leads]
 verify_jwt = false
+
+[functions.submit-registration]
+verify_jwt = false

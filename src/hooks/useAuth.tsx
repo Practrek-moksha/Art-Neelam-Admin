@@ -2,8 +2,8 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
-// Demo mode: bypass auth for development with dummy data
-const DEMO_MODE = true;
+// Demo mode: set to false for real authentication
+const DEMO_MODE = false;
 
 interface AuthContextType {
   user: User | null;
