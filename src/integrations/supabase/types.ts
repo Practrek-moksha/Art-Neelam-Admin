@@ -254,6 +254,8 @@ export type Database = {
           batch: string
           course: string
           created_at: string
+          discount_amount: number | null
+          discount_percent: number | null
           dob: string | null
           email: string | null
           emergency_contact: string | null
@@ -281,6 +283,8 @@ export type Database = {
           batch?: string
           course?: string
           created_at?: string
+          discount_amount?: number | null
+          discount_percent?: number | null
           dob?: string | null
           email?: string | null
           emergency_contact?: string | null
@@ -308,6 +312,8 @@ export type Database = {
           batch?: string
           course?: string
           created_at?: string
+          discount_amount?: number | null
+          discount_percent?: number | null
           dob?: string | null
           email?: string | null
           emergency_contact?: string | null

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, UserPlus, IndianRupee, CalendarCheck, Cake, TrendingUp, MessageCircle, Phone, Bell } from "lucide-react";
+import { Users, UserPlus, IndianRupee, CalendarCheck, Cake, TrendingUp, MessageCircle, Phone, Bell, Award, AlertTriangle, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,14 +8,14 @@ const today = new Date();
 
 const statusColors: Record<string, string> = {
   new: "bg-secondary text-secondary-foreground",
-  "follow-up": "bg-warm text-warm-foreground",
-  demo: "bg-primary-soft text-primary",
+  contacted: "bg-warm text-warm-foreground",
   converted: "bg-accent text-accent-foreground",
-  lost: "bg-muted text-muted-foreground",
+  "not-interested": "bg-muted text-muted-foreground",
 };
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ leads: 0, newLeads: 0, activeStudents: 0, totalStudents: 0, revenue: 0, attendanceToday: 0, noticeCount: 0 });
+  const [automation, setAutomation] = useState({ feesDueSoon: 0, overduePayments: 0, certificatesReady: 0, expiredValidity: 0 });
   const [recentLeads, setRecentLeads] = useState<any[]>([]);
   const [upcomingBirthdays, setUpcomingBirthdays] = useState<any[]>([]);
   const [notices, setNotices] = useState<any[]>([]);
@@ -25,9 +25,9 @@ export default function Dashboard() {
     (async () => {
       const [leadsRes, studentsRes, paymentsRes, attendanceRes, noticesRes] = await Promise.all([
         supabase.from("leads").select("*").order("created_at", { ascending: false }),
-        supabase.from("students").select("id, name, dob, status, whatsapp"),
-        supabase.from("payments").select("amount, status, date"),
-        supabase.from("attendance").select("student_id, date, status").eq("date", today.toISOString().slice(0, 10)),
+        supabase.from("students").select("id, name, dob, status, whatsapp, total_sessions, validity_end"),
+        supabase.from("payments").select("amount, status, date, student_id"),
+        supabase.from("attendance").select("student_id, date, status"),
         supabase.from("notices").select("*").order("date", { ascending: false }).limit(3),
       ]);
 
@@ -36,6 +36,8 @@ export default function Dashboard() {
       const payments = paymentsRes.data || [];
       const attendance = attendanceRes.data || [];
       const noticesList = noticesRes.data || [];
+      const todayStr = today.toISOString().slice(0, 10);
+      const todayAttendance = attendance.filter(a => a.date === todayStr);
 
       const monthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
       const monthRevenue = payments.filter(p => p.status === "paid" && p.date.startsWith(monthKey)).reduce((a, p) => a + p.amount, 0);
@@ -49,15 +51,41 @@ export default function Dashboard() {
         return diff >= 0 && diff <= 30 * 24 * 60 * 60 * 1000;
       });
 
+      // Automation stats
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 3); // Due within 3 days
+      const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+
+      const pendingPayments = payments.filter(p => p.status === "pending");
+      const feesDueSoon = pendingPayments.filter(p => p.date <= tomorrowStr && p.date >= todayStr).length;
+      const overduePayments = pendingPayments.filter(p => p.date < todayStr).length;
+
+      // Certificate ready: students who attended >= total_sessions
+      const studentAttendanceCounts: Record<string, number> = {};
+      attendance.forEach(a => {
+        if (a.status === "present" || a.status === "late") {
+          studentAttendanceCounts[a.student_id] = (studentAttendanceCounts[a.student_id] || 0) + 1;
+        }
+      });
+      const certificatesReady = students.filter(s =>
+        s.status === "active" && studentAttendanceCounts[s.id] >= s.total_sessions
+      ).length;
+
+      // Expired validity
+      const expiredValidity = students.filter(s =>
+        s.status === "active" && s.validity_end && s.validity_end < todayStr
+      ).length;
+
       setStats({
         leads: leads.length,
         newLeads: leads.filter(l => l.status === "new").length,
         activeStudents: students.filter(s => s.status === "active").length,
         totalStudents: students.length,
         revenue: monthRevenue,
-        attendanceToday: attendance.filter(a => a.status === "present").length,
+        attendanceToday: todayAttendance.filter(a => a.status === "present").length,
         noticeCount: noticesList.length,
       });
+      setAutomation({ feesDueSoon, overduePayments, certificatesReady, expiredValidity });
       setRecentLeads(leads.slice(0, 4));
       setUpcomingBirthdays(bdays);
       setNotices(noticesList);
@@ -72,6 +100,13 @@ export default function Dashboard() {
     { label: "Active Students", value: stats.activeStudents, sub: `${stats.totalStudents} total`, icon: UserPlus, iconBg: "bg-primary-soft" },
     { label: "Revenue (Month)", value: "₹" + stats.revenue.toLocaleString(), sub: "Collected", icon: IndianRupee, iconBg: "bg-accent" },
     { label: "Attendance Today", value: stats.attendanceToday, sub: `of ${stats.totalStudents} students`, icon: CalendarCheck, iconBg: "bg-warm" },
+  ];
+
+  const automationCards = [
+    { label: "Active Students", value: stats.activeStudents, icon: Users, color: "bg-accent", textColor: "text-accent-foreground", emoji: "🟢" },
+    { label: "Fees Due Soon", value: automation.feesDueSoon, icon: Clock, color: "bg-warm", textColor: "text-warm-foreground", emoji: "🟡" },
+    { label: "Overdue Payments", value: automation.overduePayments, icon: AlertTriangle, color: "bg-destructive/10", textColor: "text-destructive", emoji: "🔴" },
+    { label: "Certificates Ready", value: automation.certificatesReady, icon: Award, color: "bg-secondary", textColor: "text-secondary-foreground", emoji: "🎓" },
   ];
 
   return (
@@ -104,6 +139,20 @@ export default function Dashboard() {
             <p className="text-[10px] text-primary font-semibold font-body mt-1">{stat.sub}</p>
           </div>
         ))}
+      </div>
+
+      {/* Automation Overview */}
+      <div>
+        <h2 className="font-display font-bold text-foreground text-base mb-3">Automation Overview</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {automationCards.map(card => (
+            <div key={card.label} className={`${card.color} rounded-2xl p-4`}>
+              <p className="text-lg mb-1">{card.emoji}</p>
+              <p className={`font-display text-2xl font-bold ${card.textColor}`}>{card.value}</p>
+              <p className={`text-xs font-semibold ${card.textColor} font-body`}>{card.label}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">

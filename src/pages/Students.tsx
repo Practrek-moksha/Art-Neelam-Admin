@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { BATCHES } from "@/data/dummy";
 import { Search, Plus, ChevronRight, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -31,14 +31,48 @@ export default function Students() {
   const [search, setSearch] = useState("");
   const [batchFilter, setBatchFilter] = useState("All");
   const [showForm, setShowForm] = useState(false);
+  const location = useLocation();
 
-  const [form, setForm] = useState({
+  const defaultForm = {
     name: "", dob: "", school_name: "", address: "", emergency_contact: "",
     father_name: "", father_contact: "", mother_name: "", mother_contact: "",
     guardian_name: "", whatsapp: "", email: "", course: "Basic",
-    batch: "Morning A", enrollment_date: "", validity_start: "", validity_end: "",
+    batch: BATCHES[0], enrollment_date: new Date().toISOString().slice(0, 10),
+    validity_start: new Date().toISOString().slice(0, 10), validity_end: "",
     total_sessions: 48, fee_amount: 12000, payment_plan: "Monthly",
-  });
+    discount_amount: 0, discount_percent: 0,
+  };
+
+  const [form, setForm] = useState(defaultForm);
+
+  // Handle prefill from lead conversion
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.prefill) {
+      setForm(prev => ({
+        ...prev,
+        name: state.prefill.name || "",
+        whatsapp: state.prefill.whatsapp || "",
+        email: state.prefill.email || "",
+        course: state.prefill.course || "Basic",
+      }));
+      setShowForm(true);
+      // Clear state so it doesn't re-trigger
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  // Auto-calculate validity end when start or sessions change
+  useEffect(() => {
+    if (form.validity_start && form.total_sessions) {
+      const start = new Date(form.validity_start);
+      // Assume ~4 sessions/week, so weeks = sessions/4, add buffer
+      const weeks = Math.ceil(form.total_sessions / 4);
+      const end = new Date(start);
+      end.setDate(end.getDate() + weeks * 7);
+      setForm(prev => ({ ...prev, validity_end: end.toISOString().slice(0, 10) }));
+    }
+  }, [form.validity_start, form.total_sessions]);
 
   const fetchStudents = async () => {
     const { data, error } = await supabase.from("students").select("id, roll_number, name, course, batch, status, validity_end, fee_amount, whatsapp, dob").order("created_at", { ascending: false });
@@ -56,8 +90,17 @@ export default function Students() {
     return matchSearch && matchBatch;
   });
 
+  // Calculate final fee
+  const discountVal = form.discount_percent > 0
+    ? Math.round(form.fee_amount * form.discount_percent / 100)
+    : form.discount_amount;
+  const finalFee = Math.max(0, form.fee_amount - discountVal);
+
   const handleSubmit = async () => {
-    if (!form.name || !form.whatsapp) return;
+    if (!form.name || !form.whatsapp) {
+      toast.error("Name and WhatsApp are required");
+      return;
+    }
     const { error } = await supabase.from("students").insert({
       name: form.name, whatsapp: form.whatsapp, dob: form.dob || null,
       school_name: form.school_name || null, address: form.address || null,
@@ -68,12 +111,18 @@ export default function Students() {
       course: form.course, batch: form.batch,
       enrollment_date: form.enrollment_date || null,
       validity_start: form.validity_start || null, validity_end: form.validity_end || null,
-      total_sessions: Number(form.total_sessions), fee_amount: Number(form.fee_amount),
+      total_sessions: Number(form.total_sessions), fee_amount: finalFee,
       payment_plan: form.payment_plan,
+      discount_amount: discountVal, discount_percent: form.discount_percent,
       roll_number: "TEMP", // trigger will auto-generate
     });
     if (error) { toast.error("Failed to add student: " + error.message); console.error(error); }
-    else { toast.success("Student registered!"); setShowForm(false); fetchStudents(); }
+    else {
+      toast.success("Student registered!");
+      setShowForm(false);
+      setForm(defaultForm);
+      fetchStudents();
+    }
   };
 
   if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
@@ -112,7 +161,7 @@ export default function Students() {
           <button key={b} onClick={() => setBatchFilter(b)}
             className={cn("flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold font-body transition-all",
               batchFilter === b ? "gradient-primary text-primary-foreground shadow-sm" : "bg-card border border-border text-muted-foreground hover:border-primary hover:text-primary")}>
-            {b}
+            {b.split(" (")[0]}
           </button>
         ))}
       </div>
@@ -132,7 +181,7 @@ export default function Students() {
                 </div>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${courseColors[s.course] || ""}`}>{s.course}</span>
-                  <span className="text-[10px] text-muted-foreground font-body">{s.batch}</span>
+                  <span className="text-[10px] text-muted-foreground font-body">{s.batch.split(" (")[0]}</span>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${s.status === "active" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>
                     {s.status}
                   </span>
@@ -150,11 +199,11 @@ export default function Students() {
 
       {/* Add Student Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={() => setShowForm(false)}>
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={() => { setShowForm(false); setForm(defaultForm); }}>
           <div className="bg-card rounded-t-3xl md:rounded-2xl w-full md:max-w-lg max-h-[90vh] overflow-y-auto shadow-active animate-fade-in" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-card px-6 py-4 border-b border-border flex items-center justify-between">
+            <div className="sticky top-0 bg-card px-6 py-4 border-b border-border flex items-center justify-between z-10">
               <h2 className="font-display text-xl font-bold text-foreground">Register Student</h2>
-              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-muted"><X className="w-5 h-5" /></button>
+              <button onClick={() => { setShowForm(false); setForm(defaultForm); }} className="p-1.5 rounded-lg hover:bg-muted"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 space-y-4">
               <Section title="Personal Info">
@@ -173,7 +222,7 @@ export default function Students() {
                 <FormField label="WhatsApp Number*" type="tel" value={form.whatsapp} onChange={v => setForm(p => ({ ...p, whatsapp: v }))} />
                 <FormField label="Email" type="email" value={form.email} onChange={v => setForm(p => ({ ...p, email: v }))} />
               </Section>
-              <Section title="Course Details">
+              <Section title="Course & Batch">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground font-body">Course</label>
                   <select value={form.course} onChange={e => setForm(p => ({ ...p, course: e.target.value }))}
@@ -185,28 +234,51 @@ export default function Students() {
                   <label className="text-xs font-semibold text-muted-foreground font-body">Batch</label>
                   <select value={form.batch} onChange={e => setForm(p => ({ ...p, batch: e.target.value }))}
                     className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
-                    {BATCHES.map(b => <option key={b}>{b}</option>)}
+                    {BATCHES.map(b => <option key={b} value={b}>{b}</option>)}
                   </select>
                 </div>
                 <FormField label="Enrollment Date" type="date" value={form.enrollment_date} onChange={v => setForm(p => ({ ...p, enrollment_date: v }))} />
                 <FormField label="Validity Start" type="date" value={form.validity_start} onChange={v => setForm(p => ({ ...p, validity_start: v }))} />
-                <FormField label="Validity End" type="date" value={form.validity_end} onChange={v => setForm(p => ({ ...p, validity_end: v }))} />
+                <FormField label="Validity End (auto-calculated)" type="date" value={form.validity_end} onChange={v => setForm(p => ({ ...p, validity_end: v }))} />
                 <FormField label="Total Sessions" type="number" value={String(form.total_sessions)} onChange={v => setForm(p => ({ ...p, total_sessions: Number(v) }))} />
+              </Section>
+              <Section title="Fees & Discount">
                 <FormField label="Fee Amount (₹)" type="number" value={String(form.fee_amount)} onChange={v => setForm(p => ({ ...p, fee_amount: Number(v) }))} />
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground font-body">Payment Plan</label>
                   <select value={form.payment_plan} onChange={e => setForm(p => ({ ...p, payment_plan: e.target.value }))}
                     className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
-                    {["Monthly", "Quarterly", "Lump Sum", "Custom"].map(p => <option key={p}>{p}</option>)}
+                    {["Monthly", "Quarterly", "Yearly", "Lump Sum", "Custom"].map(p => <option key={p}>{p}</option>)}
                   </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="Discount %" type="number" value={String(form.discount_percent)} onChange={v => setForm(p => ({ ...p, discount_percent: Number(v), discount_amount: 0 }))} />
+                  <FormField label="Discount ₹" type="number" value={String(form.discount_amount)} onChange={v => setForm(p => ({ ...p, discount_amount: Number(v), discount_percent: 0 }))} />
+                </div>
+                {/* Fee Summary */}
+                <div className="bg-accent rounded-xl p-3 space-y-1">
+                  <div className="flex justify-between text-xs font-body">
+                    <span className="text-muted-foreground">Total Fee</span>
+                    <span className="font-semibold text-foreground">₹{form.fee_amount.toLocaleString()}</span>
+                  </div>
+                  {discountVal > 0 && (
+                    <div className="flex justify-between text-xs font-body">
+                      <span className="text-muted-foreground">Discount</span>
+                      <span className="font-semibold text-accent-foreground">-₹{discountVal.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-body font-bold border-t border-border pt-1">
+                    <span className="text-foreground">Final Fee</span>
+                    <span className="text-primary">₹{finalFee.toLocaleString()}</span>
+                  </div>
                 </div>
               </Section>
               <div className="p-3 bg-accent rounded-xl">
-                <p className="text-xs text-accent-foreground font-body">✓ By submitting, student/guardian agrees to the studio's terms & conditions.</p>
+                <p className="text-xs text-accent-foreground font-body">✓ By submitting, student/guardian agrees to Art Neelam Academy's terms & conditions.</p>
               </div>
             </div>
             <div className="sticky bottom-0 bg-card px-6 py-4 border-t border-border flex gap-3">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl border border-border text-sm font-semibold font-body text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
+              <button onClick={() => { setShowForm(false); setForm(defaultForm); }} className="flex-1 py-3 rounded-xl border border-border text-sm font-semibold font-body text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
               <button onClick={handleSubmit} className="flex-1 py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold font-body hover:opacity-90 transition-opacity">Register Student</button>
             </div>
           </div>

@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Phone, MessageCircle, Plus, ChevronRight, Sparkles, Loader2 } from "lucide-react";
+import { Phone, MessageCircle, Plus, ChevronRight, Sparkles, Loader2, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
-type LeadStatus = "new" | "follow-up" | "demo" | "converted" | "lost";
+type LeadStatus = "new" | "contacted" | "converted" | "not-interested";
 
 type Lead = {
   id: string;
@@ -26,15 +27,16 @@ type Column = { key: LeadStatus; label: string; color: string; textColor: string
 
 const columns: Column[] = [
   { key: "new", label: "New", color: "bg-kanban-new", textColor: "text-blue-700" },
-  { key: "follow-up", label: "Follow-up", color: "bg-kanban-follow", textColor: "text-amber-700" },
-  { key: "demo", label: "Demo", color: "bg-kanban-demo", textColor: "text-purple-700" },
+  { key: "contacted", label: "Contacted", color: "bg-kanban-follow", textColor: "text-amber-700" },
   { key: "converted", label: "Converted", color: "bg-kanban-converted", textColor: "text-green-700" },
-  { key: "lost", label: "Lost", color: "bg-kanban-lost", textColor: "text-red-700" },
+  { key: "not-interested", label: "Not Interested", color: "bg-kanban-lost", textColor: "text-red-700" },
 ];
 
 const statusDot: Record<LeadStatus, string> = {
-  new: "bg-blue-400", "follow-up": "bg-amber-400", demo: "bg-purple-400", converted: "bg-green-400", lost: "bg-red-400",
+  new: "bg-blue-400", contacted: "bg-amber-400", converted: "bg-green-400", "not-interested": "bg-red-400",
 };
+
+const SOURCES = ["Website", "Instagram", "Facebook", "Google", "Referral", "Walk-in", "Other"];
 
 export default function Leads() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -46,6 +48,7 @@ export default function Leads() {
   const [showForm, setShowForm] = useState(false);
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [newLead, setNewLead] = useState({ name: "", phone: "", email: "", course: "Basic", source: "Website", notes: "", follow_up_date: "" });
+  const navigate = useNavigate();
 
   const fetchLeads = async () => {
     const { data, error } = await supabase.from("leads").select("*").order("created_at", { ascending: false });
@@ -70,7 +73,27 @@ export default function Leads() {
       follow_up_date: newLead.follow_up_date || null, status: "new",
     });
     if (error) { toast.error("Failed to add lead: " + error.message); }
-    else { toast.success("Lead added!"); setShowForm(false); setNewLead({ name: "", phone: "", email: "", course: "Basic", source: "Website", notes: "", follow_up_date: "" }); fetchLeads(); }
+    else {
+      toast.success("Lead added!");
+      setShowForm(false);
+      setNewLead({ name: "", phone: "", email: "", course: "Basic", source: "Website", notes: "", follow_up_date: "" });
+      fetchLeads();
+    }
+  };
+
+  const convertToStudent = (lead: Lead) => {
+    navigate("/students", {
+      state: {
+        prefill: {
+          name: lead.name,
+          whatsapp: lead.phone || "",
+          email: lead.email || "",
+          course: lead.course || "Basic",
+          notes: lead.notes || "",
+          source: lead.source || "",
+        },
+      },
+    });
   };
 
   const runAIScoring = async () => {
@@ -156,7 +179,7 @@ export default function Leads() {
                   <label className="text-xs font-semibold text-muted-foreground font-body">Source</label>
                   <select value={newLead.source} onChange={e => setNewLead(p => ({ ...p, source: e.target.value }))}
                     className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
-                    {["Website", "Instagram", "Facebook", "Referral", "Walk-in", "Other"].map(s => <option key={s}>{s}</option>)}
+                    {SOURCES.map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
               </div>
@@ -204,7 +227,7 @@ export default function Leads() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-bold text-foreground font-body truncate">{lead.name}</p>
-                            <p className="text-[10px] text-muted-foreground font-body">{lead.course}</p>
+                            <p className="text-[10px] text-muted-foreground font-body">{lead.course} • {lead.source}</p>
                           </div>
                           {sc && (
                             <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full",
@@ -226,6 +249,11 @@ export default function Leads() {
                             <MessageCircle className="w-3 h-3" /> WA
                           </button>
                         </div>
+                        {/* Convert to Student button */}
+                        <button onClick={() => convertToStudent(lead)}
+                          className="w-full mt-1.5 flex items-center justify-center gap-1 py-1.5 bg-primary-soft text-primary rounded-lg text-[10px] font-semibold hover:opacity-80 transition-opacity">
+                          <UserPlus className="w-3 h-3" /> Convert to Student
+                        </button>
                         <div className="flex gap-1 mt-1.5">
                           {columns.filter(c => c.key !== col.key).slice(0, 2).map(c => (
                             <button key={c.key} onClick={() => moveCard(lead.id, c.key)}
@@ -265,9 +293,13 @@ export default function Leads() {
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${
                       lead.status === "converted" ? "bg-accent text-accent-foreground" :
                       lead.status === "new" ? "bg-secondary text-secondary-foreground" :
-                      lead.status === "lost" ? "bg-muted text-muted-foreground" :
+                      lead.status === "not-interested" ? "bg-muted text-muted-foreground" :
                       "bg-warm text-warm-foreground"
                     }`}>{lead.status}</span>
+                    <button onClick={() => convertToStudent(lead)}
+                      className="p-1.5 rounded-lg hover:bg-primary-soft transition-colors" title="Convert to Student">
+                      <UserPlus className="w-4 h-4 text-primary" />
+                    </button>
                     <button onClick={() => lead.phone && openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course || ""))} className="p-1.5 rounded-lg hover:bg-accent transition-colors">
                       <MessageCircle className="w-4 h-4 text-accent-vivid" />
                     </button>

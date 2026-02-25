@@ -176,5 +176,10 @@ export const DUMMY_NOTICES: Notice[] = [
   { id: "N003", title: "Summer Camp Registration Open", body: "Exciting summer art camp starting April 15th. Limited seats available. Register early!", date: "2024-02-10", audience: "all" },
 ];
 
-export const BATCHES = ["Morning A", "Morning B", "Evening A", "Evening B", "Weekend"];
+export const BATCHES = [
+  "Professional (10:00 AM - 11:30 AM)",
+  "Advance + Basic (11:30 AM - 1:00 PM)",
+  "Basic 1 (1:00 PM - 2:30 PM)",
+  "Basic 2 (2:30 PM - 4:00 PM)",
+];
 export const EXPENSE_CATEGORIES = ["Art Supplies", "Utilities", "Rent", "Marketing", "Maintenance", "Salaries", "Equipment", "Other"];

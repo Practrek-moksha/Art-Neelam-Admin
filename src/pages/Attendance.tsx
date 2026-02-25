@@ -118,7 +118,7 @@ export default function Attendance() {
           <button key={b} onClick={() => setSelectedBatch(b)}
             className={cn("flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold font-body transition-all",
               selectedBatch === b ? "gradient-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:border-primary hover:text-primary")}>
-            {b}
+            {b.split(" (")[0]}
           </button>
         ))}
       </div>
@@ -151,7 +151,7 @@ export default function Attendance() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold font-body text-foreground">{student.name}</p>
-                  <p className="text-[10px] text-muted-foreground font-body">{student.roll_number} • {student.batch}</p>
+                  <p className="text-[10px] text-muted-foreground font-body">{student.roll_number} • {student.batch.split(" (")[0]}</p>
                 </div>
                 <div className="flex gap-1.5">
                   {(["present", "absent", "late"] as Status[]).map(s => (

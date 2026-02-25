@@ -63,7 +63,7 @@ export default function Auth() {
           <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center shadow-active mx-auto mb-4">
             <Palette className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Art Neelam Studio</h1>
+          <h1 className="font-display text-2xl font-bold text-foreground">Art Neelam Academy</h1>
           <p className="text-sm text-muted-foreground font-body mt-1">
             {isLogin ? "Sign in to your account" : "Create your account"}
           </p>
