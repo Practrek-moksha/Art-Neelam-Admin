@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Plus, Search, TrendingUp, X, Send } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -15,10 +14,10 @@ type PaymentRow = {
   id: string; student_id: string; amount: number; method: string | null;
   date: string; installment_no: number | null; total_installments: number | null;
   notes: string | null; status: string;
-  students: { name: string; whatsapp: string } | null;
+  students: { name: string; whatsapp: string; father_contact: string | null; mother_contact: string | null } | null;
 };
 
-type StudentOption = { id: string; name: string; roll_number: string; whatsapp: string };
+type StudentOption = { id: string; name: string; roll_number: string; whatsapp: string; father_contact: string | null; mother_contact: string | null };
 
 export default function Payments() {
   const [payments, setPayments] = useState<PaymentRow[]>([]);
@@ -30,21 +29,21 @@ export default function Payments() {
     student_id: "", amount: "", method: "UPI", installment_no: 1, total_installments: 1, notes: "", status: "paid", date: new Date().toISOString().slice(0, 10),
   });
 
-  useEffect(() => {
-    (async () => {
-      const [pRes, sRes] = await Promise.all([
-        supabase.from("payments").select("*, students(name, whatsapp)").order("date", { ascending: false }),
-        supabase.from("students").select("id, name, roll_number, whatsapp"),
-      ]);
-      if (pRes.error) toast.error("Failed to load payments");
-      if (sRes.error) toast.error("Failed to load students");
-      setPayments(pRes.data || []);
-      const studentList = sRes.data || [];
-      setStudents(studentList);
-      if (studentList.length > 0) setForm(f => ({ ...f, student_id: studentList[0].id }));
-      setLoading(false);
-    })();
-  }, []);
+  const fetchData = async () => {
+    const [pRes, sRes] = await Promise.all([
+      supabase.from("payments").select("*, students(name, whatsapp, father_contact, mother_contact)").order("date", { ascending: false }),
+      supabase.from("students").select("id, name, roll_number, whatsapp, father_contact, mother_contact"),
+    ]);
+    if (pRes.error) toast.error("Failed to load payments");
+    if (sRes.error) toast.error("Failed to load students");
+    setPayments(pRes.data || []);
+    const studentList = sRes.data || [];
+    setStudents(studentList);
+    if (studentList.length > 0 && !form.student_id) setForm(f => ({ ...f, student_id: studentList[0].id }));
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const filtered = payments.filter(p =>
     (p.students?.name || "").toLowerCase().includes(search.toLowerCase())
@@ -54,7 +53,10 @@ export default function Payments() {
   const totalPending = payments.filter(p => p.status === "pending").reduce((a, p) => a + p.amount, 0);
 
   const addPayment = async () => {
-    if (!form.amount || !form.student_id) return;
+    if (!form.amount || !form.student_id) {
+      toast.error("Student and amount are required");
+      return;
+    }
     const { error } = await supabase.from("payments").insert({
       student_id: form.student_id, amount: Number(form.amount), method: form.method,
       date: form.date, installment_no: form.installment_no, total_installments: form.total_installments,
@@ -63,9 +65,14 @@ export default function Payments() {
     if (error) { toast.error("Failed to record payment: " + error.message); return; }
     toast.success("Payment recorded!");
     setShowForm(false);
-    // Refetch
-    const { data } = await supabase.from("payments").select("*, students(name, whatsapp)").order("date", { ascending: false });
-    setPayments(data || []);
+    setForm(f => ({ ...f, amount: "", notes: "", installment_no: f.installment_no + 1 }));
+    fetchData();
+  };
+
+  const sendReminderToParent = (p: PaymentRow) => {
+    const parentPhone = p.students?.father_contact || p.students?.mother_contact || p.students?.whatsapp;
+    if (!parentPhone) { toast.error("No parent contact found"); return; }
+    openWhatsApp(parentPhone, templates.feeReminder(p.students!.name, p.amount, p.date));
   };
 
   if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
@@ -117,9 +124,9 @@ export default function Payments() {
               </div>
             </div>
             {p.status === "pending" && p.students && (
-              <button onClick={() => openWhatsApp(p.students!.whatsapp, templates.feeReminder(p.students!.name, p.amount))}
+              <button onClick={() => sendReminderToParent(p)}
                 className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-warm text-warm-foreground text-[10px] font-semibold hover:opacity-80 transition-opacity">
-                <Send className="w-3 h-3" /> Send Fee Reminder via WhatsApp
+                <Send className="w-3 h-3" /> Send Fee Reminder to Parent
               </button>
             )}
           </div>

@@ -13,6 +13,7 @@ import Attendance from "./pages/Attendance";
 import Payments from "./pages/Payments";
 import Expenses from "./pages/Expenses";
 import IDCard from "./pages/IDCard";
+import Certificate from "./pages/Certificate";
 import Notices from "./pages/Notices";
 import Settings from "./pages/Settings";
 import ParentPortal from "./pages/ParentPortal";
@@ -72,6 +73,7 @@ const AppRoutes = () => {
       <Route path="/payments" element={<ProtectedRoute adminOnly><Layout><Payments /></Layout></ProtectedRoute>} />
       <Route path="/expenses" element={<ProtectedRoute adminOnly><Layout><Expenses /></Layout></ProtectedRoute>} />
       <Route path="/id-card" element={<ProtectedRoute adminOnly><Layout><IDCard /></Layout></ProtectedRoute>} />
+      <Route path="/certificates" element={<ProtectedRoute adminOnly><Layout><Certificate /></Layout></ProtectedRoute>} />
       <Route path="/notices" element={<ProtectedRoute adminOnly><Layout><Notices /></Layout></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute adminOnly><Layout><Settings /></Layout></ProtectedRoute>} />
 

@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, UserPlus, CalendarCheck, CreditCard,
-  Receipt, IdCard, Bell, Settings, LogOut, Palette, Menu, X
+  Receipt, IdCard, Bell, Settings, LogOut, Palette, Menu, X, Award
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ const navItems = [
   { path: "/payments", icon: CreditCard, label: "Payments" },
   { path: "/expenses", icon: Receipt, label: "Expenses" },
   { path: "/id-card", icon: IdCard, label: "ID Cards" },
+  { path: "/certificates", icon: Award, label: "Certificates" },
   { path: "/notices", icon: Bell, label: "Notices" },
   { path: "/settings", icon: Settings, label: "Settings" },
 ];
@@ -50,7 +51,7 @@ export default function Layout({ children }: LayoutProps) {
             </div>
             <div>
               <h1 className="font-display text-base font-bold text-foreground leading-tight">Art Neelam</h1>
-              <p className="text-xs text-muted-foreground font-body">Studio Manager</p>
+              <p className="text-xs text-muted-foreground font-body">Academy Manager</p>
             </div>
           </div>
         </div>
@@ -97,7 +98,7 @@ export default function Layout({ children }: LayoutProps) {
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
               <Palette className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-display font-bold text-foreground text-base">Art Neelam</span>
+            <span className="font-display font-bold text-foreground text-base">Art Neelam Academy</span>
           </div>
           <button
             onClick={() => setSidebarOpen(true)}
@@ -119,7 +120,7 @@ export default function Layout({ children }: LayoutProps) {
                   <Palette className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <h1 className="font-display font-bold text-foreground text-sm">Art Neelam Studio</h1>
+                  <h1 className="font-display font-bold text-foreground text-sm">Art Neelam Academy</h1>
                   <p className="text-xs text-muted-foreground">Admin Panel</p>
                 </div>
               </div>

@@ -2,7 +2,12 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Palette, CheckCircle } from "lucide-react";
 
-const BATCHES = ["Morning A", "Morning B", "Evening A", "Evening B", "Weekend"];
+const BATCHES = [
+  "Professional (10:00 AM - 11:30 AM)",
+  "Advance + Basic (11:30 AM - 1:00 PM)",
+  "Basic 1 (1:00 PM - 2:30 PM)",
+  "Basic 2 (2:30 PM - 4:00 PM)",
+];
 
 function isValidIndianPhone(phone: string): boolean {
   const cleaned = phone.replace(/[\s\-()]/g, "");
@@ -18,7 +23,7 @@ export default function RegisterForm() {
     name: "", dob: "", schoolName: "", address: "", emergencyContact: "",
     fatherName: "", fatherContact: "", motherName: "", motherContact: "",
     guardianName: "", whatsapp: "", email: "", course: "Basic",
-    batch: "Morning A", agreedTerms: false,
+    batch: "Professional (10:00 AM - 11:30 AM)", agreedTerms: false,
   });
 
   const validatePhone = (phone: string) => {
@@ -82,7 +87,7 @@ export default function RegisterForm() {
             <CheckCircle className="w-10 h-10 text-accent-vivid" />
           </div>
           <h2 className="font-display text-2xl font-bold text-foreground">Registration Submitted!</h2>
-          <p className="text-muted-foreground font-body mt-2">Thank you for registering with Art Neelam Studio. We'll contact you on WhatsApp to confirm your enrollment.</p>
+          <p className="text-muted-foreground font-body mt-2">Thank you for registering with Art Neelam Academy. We'll contact you on WhatsApp to confirm your enrollment.</p>
           <div className="mt-6 p-4 bg-card rounded-2xl border border-border shadow-card text-left">
             <p className="text-xs font-semibold text-muted-foreground font-body">Student Name</p>
             <p className="text-base font-bold font-body text-foreground">{form.name}</p>
@@ -102,7 +107,7 @@ export default function RegisterForm() {
             <Palette className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-display font-bold text-primary-foreground text-lg">Art Neelam Studio</h1>
+            <h1 className="font-display font-bold text-primary-foreground text-lg">Art Neelam Academy</h1>
             <p className="text-xs text-primary-foreground/80 font-body">Student Registration Form</p>
           </div>
         </div>
