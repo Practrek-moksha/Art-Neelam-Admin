@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.submit-registration]
 verify_jwt = false
+
+[functions.seed-demo-users]
+verify_jwt = false
