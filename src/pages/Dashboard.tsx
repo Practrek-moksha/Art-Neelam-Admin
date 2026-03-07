@@ -3,6 +3,7 @@ import { Users, UserPlus, IndianRupee, CalendarCheck, Cake, TrendingUp, MessageC
 import { Link } from "react-router-dom";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
+import logoImg from "@/assets/logo.png";
 
 const today = new Date();
 
@@ -42,7 +43,6 @@ export default function Dashboard() {
       const monthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
       const monthRevenue = payments.filter(p => p.status === "paid" && p.date.startsWith(monthKey)).reduce((a, p) => a + p.amount, 0);
 
-      // Upcoming birthdays (next 30 days)
       const bdays = students.filter(s => {
         if (!s.dob) return false;
         const dob = new Date(s.dob);
@@ -51,19 +51,17 @@ export default function Dashboard() {
         return diff >= 0 && diff <= 30 * 24 * 60 * 60 * 1000;
       });
 
-      // Automation stats
       const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 3); // Due within 3 days
+      tomorrow.setDate(tomorrow.getDate() + 3);
       const tomorrowStr = tomorrow.toISOString().slice(0, 10);
 
       const pendingPayments = payments.filter(p => p.status === "pending");
       const feesDueSoon = pendingPayments.filter(p => p.date <= tomorrowStr && p.date >= todayStr).length;
       const overduePayments = pendingPayments.filter(p => p.date < todayStr).length;
 
-      // Certificate ready: students who attended >= total_sessions
       const studentAttendanceCounts: Record<string, number> = {};
       attendance.forEach(a => {
-        if (a.status === "present" || a.status === "late") {
+        if (a.status === "present") {
           studentAttendanceCounts[a.student_id] = (studentAttendanceCounts[a.student_id] || 0) + 1;
         }
       });
@@ -71,7 +69,6 @@ export default function Dashboard() {
         s.status === "active" && studentAttendanceCounts[s.id] >= s.total_sessions
       ).length;
 
-      // Expired validity
       const expiredValidity = students.filter(s =>
         s.status === "active" && s.validity_end && s.validity_end < todayStr
       ).length;
@@ -112,11 +109,14 @@ export default function Dashboard() {
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">Good Morning! 🎨</h1>
-          <p className="text-muted-foreground text-sm mt-1 font-body">
-            {today.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-          </p>
+        <div className="flex items-center gap-3">
+          <img src={logoImg} alt="Art Neelam" className="w-12 h-auto" />
+          <div>
+            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">Good Morning! 🎨</h1>
+            <p className="text-muted-foreground text-sm mt-1 font-body">
+              {today.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+            </p>
+          </div>
         </div>
         <Link to="/notices" className="relative p-2.5 bg-card rounded-xl border border-border shadow-sm hover:shadow-card transition-all">
           <Bell className="w-5 h-5 text-primary" />
@@ -141,7 +141,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Automation Overview */}
       <div>
         <h2 className="font-display font-bold text-foreground text-base mb-3">Automation Overview</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -156,7 +155,6 @@ export default function Dashboard() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
-        {/* Recent Leads */}
         <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-border">
             <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /><h2 className="font-display font-bold text-foreground text-base">Recent Leads</h2></div>
@@ -181,7 +179,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Upcoming Birthdays */}
         <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3.5 border-b border-border"><Cake className="w-4 h-4 text-primary" /><h2 className="font-display font-bold text-foreground text-base">Upcoming Birthdays</h2></div>
           <div className="p-4">
@@ -204,7 +201,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Quick Notices */}
       <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-border">
           <div className="flex items-center gap-2"><Bell className="w-4 h-4 text-primary" /><h2 className="font-display font-bold text-foreground text-base">Noticeboard</h2></div>

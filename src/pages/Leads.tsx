@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Phone, MessageCircle, Plus, ChevronRight, Sparkles, Loader2, UserPlus } from "lucide-react";
+import { Phone, MessageCircle, Plus, ChevronRight, Sparkles, Loader2, UserPlus, Filter, Globe, PenLine, ThumbsDown, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,20 +9,12 @@ import { useNavigate } from "react-router-dom";
 type LeadStatus = "new" | "contacted" | "converted" | "not-interested";
 
 type Lead = {
-  id: string;
-  name: string;
-  phone: string | null;
-  email: string | null;
-  course: string | null;
-  status: string;
-  source: string | null;
-  follow_up_date: string | null;
-  created_at: string;
-  notes: string | null;
+  id: string; name: string; phone: string | null; email: string | null;
+  course: string | null; status: string; source: string | null;
+  follow_up_date: string | null; created_at: string; notes: string | null;
 };
 
 type LeadScore = { id: string; score: number; reason: string };
-
 type Column = { key: LeadStatus; label: string; color: string; textColor: string };
 
 const columns: Column[] = [
@@ -47,6 +39,7 @@ export default function Leads() {
   const [dragOver, setDragOver] = useState<LeadStatus | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [view, setView] = useState<"kanban" | "list">("kanban");
+  const [sourceFilter, setSourceFilter] = useState<"all" | "auto" | "manual">("all");
   const [newLead, setNewLead] = useState({ name: "", phone: "", email: "", course: "Basic", source: "Website", notes: "", follow_up_date: "" });
   const navigate = useNavigate();
 
@@ -59,10 +52,22 @@ export default function Leads() {
 
   useEffect(() => { fetchLeads(); }, []);
 
+  const autoSources = ["Website", "Google"];
+  const filteredBySource = sourceFilter === "all" ? leads
+    : sourceFilter === "auto" ? leads.filter(l => autoSources.includes(l.source || ""))
+    : leads.filter(l => !autoSources.includes(l.source || ""));
+
   const moveCard = async (leadId: string, toStatus: LeadStatus) => {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: toStatus } : l));
     const { error } = await supabase.from("leads").update({ status: toStatus }).eq("id", leadId);
     if (error) { toast.error("Failed to update status"); fetchLeads(); }
+  };
+
+  const deleteLead = async (leadId: string) => {
+    if (!confirm("Delete this lead?")) return;
+    const { error } = await supabase.from("leads").delete().eq("id", leadId);
+    if (error) toast.error("Failed to delete");
+    else { toast.success("Lead deleted"); setLeads(prev => prev.filter(l => l.id !== leadId)); }
   };
 
   const addLead = async () => {
@@ -83,16 +88,7 @@ export default function Leads() {
 
   const convertToStudent = (lead: Lead) => {
     navigate("/students", {
-      state: {
-        prefill: {
-          name: lead.name,
-          whatsapp: lead.phone || "",
-          email: lead.email || "",
-          course: lead.course || "Basic",
-          notes: lead.notes || "",
-          source: lead.source || "",
-        },
-      },
+      state: { prefill: { name: lead.name, whatsapp: lead.phone || "", email: lead.email || "", course: lead.course || "Basic", notes: lead.notes || "", source: lead.source || "" } },
     });
   };
 
@@ -102,18 +98,14 @@ export default function Leads() {
       const { data: { session } } = await supabase.auth.getSession();
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/score-leads`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
       });
       const result = await resp.json();
       if (result.error) throw new Error(result.error);
       setScores(result.scores || []);
       toast.success(`Scored ${result.scores?.length || 0} leads with AI`);
-    } catch (e: any) {
-      toast.error(e.message || "AI scoring failed");
-    } finally { setScoring(false); }
+    } catch (e: any) { toast.error(e.message || "AI scoring failed"); }
+    finally { setScoring(false); }
   };
 
   const getScore = (id: string) => scores.find(s => s.id === id);
@@ -123,12 +115,12 @@ export default function Leads() {
   return (
     <div className="p-4 md:p-6 space-y-4 h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Leads CRM</h1>
-          <p className="text-sm text-muted-foreground font-body">{leads.length} total leads</p>
+          <p className="text-sm text-muted-foreground font-body">{filteredBySource.length} leads</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button onClick={runAIScoring} disabled={scoring}
             className="flex items-center gap-1.5 px-3 py-2 bg-secondary text-secondary-foreground rounded-xl text-xs font-semibold hover:opacity-90 transition-all disabled:opacity-50">
             {scoring ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} AI Score
@@ -146,6 +138,21 @@ export default function Leads() {
             <Plus className="w-4 h-4" /> Add Lead
           </button>
         </div>
+      </div>
+
+      {/* Source Filter: All / Auto (Website) / Manual */}
+      <div className="flex gap-2">
+        {([
+          { key: "all", label: "All Leads", icon: Filter },
+          { key: "auto", label: "Auto (Site Enquiry)", icon: Globe },
+          { key: "manual", label: "Manual", icon: PenLine },
+        ] as const).map(f => (
+          <button key={f.key} onClick={() => setSourceFilter(f.key)}
+            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold font-body transition-all border",
+              sourceFilter === f.key ? "border-primary bg-primary-soft text-primary" : "border-border bg-card text-muted-foreground hover:border-primary/50")}>
+            <f.icon className="w-3 h-3" /> {f.label}
+          </button>
+        ))}
       </div>
 
       {/* Add Lead Modal */}
@@ -201,7 +208,7 @@ export default function Leads() {
       {view === "kanban" && (
         <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-4 flex-1">
           {columns.map(col => {
-            const colLeads = leads.filter(l => l.status === col.key);
+            const colLeads = filteredBySource.filter(l => l.status === col.key);
             return (
               <div key={col.key}
                 className={cn("flex-shrink-0 w-64 rounded-2xl p-3 transition-all", col.color, dragOver === col.key && "ring-2 ring-primary")}
@@ -227,7 +234,10 @@ export default function Leads() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-bold text-foreground font-body truncate">{lead.name}</p>
-                            <p className="text-[10px] text-muted-foreground font-body">{lead.course} • {lead.source}</p>
+                            <p className="text-[10px] text-muted-foreground font-body">
+                              {lead.course} • {lead.source}
+                              {autoSources.includes(lead.source || "") && <span className="ml-1 text-primary">🌐</span>}
+                            </p>
                           </div>
                           {sc && (
                             <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full",
@@ -242,26 +252,31 @@ export default function Leads() {
                           <p className="text-[10px] text-primary font-semibold mb-2 font-body">📅 {new Date(lead.follow_up_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p>
                         )}
                         <div className="flex gap-1.5">
-                          <a href={`tel:${lead.phone}`} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80 transition-opacity">
+                          <a href={`tel:${lead.phone}`} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80">
                             <Phone className="w-3 h-3" /> Call
                           </a>
-                          <button onClick={() => lead.phone && openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course || ""))} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80 transition-opacity">
+                          <button onClick={() => lead.phone && openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course || ""))} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80">
                             <MessageCircle className="w-3 h-3" /> WA
                           </button>
                         </div>
-                        {/* Convert to Student button */}
                         <button onClick={() => convertToStudent(lead)}
-                          className="w-full mt-1.5 flex items-center justify-center gap-1 py-1.5 bg-primary-soft text-primary rounded-lg text-[10px] font-semibold hover:opacity-80 transition-opacity">
+                          className="w-full mt-1.5 flex items-center justify-center gap-1 py-1.5 bg-primary-soft text-primary rounded-lg text-[10px] font-semibold hover:opacity-80">
                           <UserPlus className="w-3 h-3" /> Convert to Student
                         </button>
-                        <div className="flex gap-1 mt-1.5">
-                          {columns.filter(c => c.key !== col.key).slice(0, 2).map(c => (
+                        {/* All status move buttons including Not Interested */}
+                        <div className="flex gap-1 mt-1.5 flex-wrap">
+                          {columns.filter(c => c.key !== col.key).map(c => (
                             <button key={c.key} onClick={() => moveCard(lead.id, c.key)}
-                              className="flex-1 text-[9px] py-1 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors font-body">
-                              → {c.label}
+                              className={cn("flex-1 text-[9px] py-1 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 font-body min-w-0",
+                                c.key === "not-interested" && "text-red-600")}>
+                              {c.key === "not-interested" ? "✕ Not Int." : `→ ${c.label}`}
                             </button>
                           ))}
                         </div>
+                        <button onClick={() => deleteLead(lead.id)}
+                          className="w-full mt-1 flex items-center justify-center gap-1 py-1 text-[9px] text-destructive hover:bg-destructive/10 rounded-lg font-body">
+                          <Trash2 className="w-3 h-3" /> Delete
+                        </button>
                       </div>
                     );
                   })}
@@ -277,7 +292,7 @@ export default function Leads() {
       {view === "list" && (
         <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden flex-1">
           <div className="divide-y divide-border">
-            {leads.map(lead => {
+            {filteredBySource.map(lead => {
               const sc = getScore(lead.id);
               return (
                 <div key={lead.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
@@ -286,7 +301,10 @@ export default function Leads() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground font-body">{lead.name}</p>
-                    <p className="text-xs text-muted-foreground font-body">{lead.phone} • {lead.course} • {lead.source}</p>
+                    <p className="text-xs text-muted-foreground font-body">
+                      {lead.phone} • {lead.course} • {lead.source}
+                      {autoSources.includes(lead.source || "") && <span className="ml-1">🌐 Auto</span>}
+                    </p>
                     {sc && <p className="text-[10px] text-primary font-body">Score: {sc.score} — {sc.reason}</p>}
                   </div>
                   <div className="flex items-center gap-2">
@@ -296,6 +314,12 @@ export default function Leads() {
                       lead.status === "not-interested" ? "bg-muted text-muted-foreground" :
                       "bg-warm text-warm-foreground"
                     }`}>{lead.status}</span>
+                    {lead.status !== "not-interested" && (
+                      <button onClick={() => moveCard(lead.id, "not-interested")}
+                        className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="Mark Not Interested">
+                        <ThumbsDown className="w-4 h-4 text-destructive" />
+                      </button>
+                    )}
                     <button onClick={() => convertToStudent(lead)}
                       className="p-1.5 rounded-lg hover:bg-primary-soft transition-colors" title="Convert to Student">
                       <UserPlus className="w-4 h-4 text-primary" />
@@ -303,7 +327,9 @@ export default function Leads() {
                     <button onClick={() => lead.phone && openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course || ""))} className="p-1.5 rounded-lg hover:bg-accent transition-colors">
                       <MessageCircle className="w-4 h-4 text-accent-vivid" />
                     </button>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    <button onClick={() => deleteLead(lead.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors">
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </button>
                   </div>
                 </div>
               );

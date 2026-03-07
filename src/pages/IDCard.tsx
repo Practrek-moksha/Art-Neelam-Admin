@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Printer, Search, Palette } from "lucide-react";
+import { Printer, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import logoImg from "@/assets/logo.png";
 
 type StudentCard = {
   id: string; name: string; roll_number: string; course: string;
@@ -68,68 +69,70 @@ export default function IDCard() {
         ))}
       </div>
 
+      {/* Paint Palette Shaped ID Card */}
       {student && (
         <div className="flex justify-center">
-          <div ref={cardRef} className="w-80 rounded-3xl overflow-hidden shadow-active border border-border print:shadow-none" style={{ background: "linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%)" }}>
-            {/* Card Header - Deep Blue */}
-            <div className="p-5 relative">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
-                  <Palette className="w-4 h-4 text-white" />
-                </div>
+          <div ref={cardRef} className="relative print:shadow-none" style={{ width: "340px" }}>
+            {/* Palette shape using CSS */}
+            <svg viewBox="0 0 340 220" className="absolute inset-0 w-full h-full" style={{ filter: "drop-shadow(0 4px 20px rgba(0,0,0,0.15))" }}>
+              <defs>
+                <linearGradient id="paletteBg" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#1e3a5f" />
+                  <stop offset="100%" stopColor="#2c5282" />
+                </linearGradient>
+              </defs>
+              <path d="M50,10 Q10,10 10,50 L10,170 Q10,210 50,210 L280,210 Q320,210 325,180 Q335,140 310,120 Q290,105 295,80 Q300,55 325,50 Q335,30 310,15 Q300,10 280,10 Z"
+                fill="url(#paletteBg)" />
+              {/* Paint dots */}
+              <circle cx="305" cy="55" r="12" fill="#f48fb1" opacity="0.9" />
+              <circle cx="315" cy="95" r="10" fill="#81c784" opacity="0.9" />
+              <circle cx="305" cy="135" r="11" fill="#ffb74d" opacity="0.9" />
+              <circle cx="310" cy="170" r="9" fill="#64b5f6" opacity="0.9" />
+              {/* Thumb hole */}
+              <ellipse cx="60" cy="175" rx="22" ry="18" fill="#fdf8f0" />
+            </svg>
+
+            <div className="relative z-10 p-5 pr-16" style={{ minHeight: "220px" }}>
+              {/* Header */}
+              <div className="flex items-center gap-2 mb-3 ml-3">
+                <img src={logoImg} alt="Art Neelam" className="w-10 h-auto rounded-lg" />
                 <div>
-                  <h2 className="font-display font-bold text-white text-sm leading-tight">Art Neelam Academy</h2>
-                  <p className="text-[10px] text-white/70 font-body">Student Identity Card</p>
+                  <h2 className="font-display font-bold text-white text-xs leading-tight">Art Neelam Academy</h2>
+                  <p className="text-[9px] text-white/70 font-body">Student Identity Card</p>
                 </div>
               </div>
-            </div>
 
-            {/* Card Body - Cream */}
-            <div className="bg-[#fdf8f0] p-5">
-              <div className="flex gap-4">
+              {/* Body */}
+              <div className="flex gap-3 ml-3">
                 <div className="flex-shrink-0">
-                  <div className="w-20 h-24 rounded-2xl bg-[#1e3a5f]/10 border-2 border-[#1e3a5f]/20 flex items-center justify-center overflow-hidden">
+                  <div className="w-16 h-20 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center overflow-hidden">
                     {student.photo_url ? (
                       <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="font-display font-bold text-[#1e3a5f] text-3xl">{student.name[0]}</span>
+                      <span className="font-display font-bold text-white text-2xl">{student.name[0]}</span>
                     )}
-                  </div>
-                  <div className="w-20 h-20 mt-2 rounded-xl bg-white border border-[#1e3a5f]/10 flex items-center justify-center">
-                    <div className="grid grid-cols-5 gap-0.5">
-                      {Array(25).fill(0).map((_, i) => (
-                        <div key={i} className={`w-2.5 h-2.5 rounded-[2px] ${Math.random() > 0.5 ? "bg-[#1e3a5f]" : "bg-white"}`} />
-                      ))}
-                    </div>
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-display font-bold text-[#1e3a5f] text-base leading-tight">{student.name}</h3>
-                  <div className="mt-2 space-y-1.5">
+                  <h3 className="font-display font-bold text-white text-sm leading-tight truncate">{student.name}</h3>
+                  <div className="mt-1.5 space-y-1">
                     <InfoRow label="ID" value={student.roll_number} highlight />
                     <InfoRow label="Course" value={student.course} />
                     <InfoRow label="Batch" value={student.batch.split(" (")[0]} />
                     <InfoRow label="Phone" value={student.whatsapp} />
                     <InfoRow label="Parent" value={student.father_contact || student.mother_contact || "—"} />
-                    <InfoRow label="Valid Till" value={student.validity_end ? new Date(student.validity_end).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }) : "—"} />
+                    <InfoRow label="Valid" value={student.validity_end ? new Date(student.validity_end).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }) : "—"} />
                   </div>
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-[#1e3a5f]/10">
-                <p className="text-[9px] text-[#1e3a5f]/50 font-body text-center">
-                  If found, please return to Art Neelam Academy
-                </p>
-                <p className="text-[10px] font-semibold text-[#1e3a5f] text-center font-body mt-0.5">
-                  📞 +91 9920546217
-                </p>
+              {/* Footer */}
+              <div className="mt-2 ml-3 mr-8">
+                <div className="flex items-center justify-between px-2 py-1 rounded-lg" style={{ background: "linear-gradient(90deg, #c9a227, #d4af37)" }}>
+                  <span className="text-[8px] text-white font-body font-semibold">artneelam.academy</span>
+                  <span className="text-[8px] text-white font-body font-semibold">{student.roll_number}</span>
+                </div>
               </div>
-            </div>
-
-            {/* Card Footer - Gold accent */}
-            <div className="px-5 py-2 flex items-center justify-between" style={{ background: "linear-gradient(90deg, #c9a227 0%, #d4af37 100%)" }}>
-              <span className="text-[9px] text-white font-body font-semibold">artneelam.academy</span>
-              <span className="text-[9px] text-white font-body font-semibold">{student.roll_number}</span>
             </div>
           </div>
         </div>
@@ -166,8 +169,8 @@ export default function IDCard() {
 function InfoRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[9px] text-[#1e3a5f]/50 font-body w-12 flex-shrink-0">{label}</span>
-      <span className={`text-[10px] font-semibold font-body ${highlight ? "text-[#c9a227]" : "text-[#1e3a5f]"}`}>{value}</span>
+      <span className="text-[8px] text-white/50 font-body w-10 flex-shrink-0">{label}</span>
+      <span className={`text-[9px] font-semibold font-body ${highlight ? "text-[#d4af37]" : "text-white"}`}>{value}</span>
     </div>
   );
 }
