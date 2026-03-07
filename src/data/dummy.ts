@@ -1,7 +1,7 @@
 export type LeadStatus = "new" | "follow-up" | "demo" | "converted" | "lost";
 export type Course = "Basic" | "Advanced" | "Professional";
 export type PaymentMethod = "UPI" | "Cash" | "Bank Transfer" | "Cheque";
-export type AttendanceStatus = "present" | "absent" | "late";
+export type AttendanceStatus = "present" | "absent" | "bank_holiday" | "class_holiday";
 
 export interface Lead {
   id: string;
