@@ -27,7 +27,7 @@ export default function Certificate() {
 
       const counts: Record<string, number> = {};
       att.forEach(a => {
-        if (a.status === "present" || a.status === "late") {
+        if (a.status === "present") {
           counts[a.student_id] = (counts[a.student_id] || 0) + 1;
         }
       });
@@ -116,15 +116,14 @@ export default function Certificate() {
 
             {/* Content */}
             <div className="relative h-full flex flex-col items-center justify-center px-8 py-6 text-center">
-              {/* Gold seal */}
-              <div className="absolute top-4 right-4 w-16 h-16 rounded-full flex items-center justify-center"
-                style={{ background: "radial-gradient(circle, #d4af37 0%, #c9a227 70%, #b8941f 100%)" }}>
-                <Award className="w-8 h-8 text-white" />
-              </div>
-
               {/* Title */}
-              <p className="text-[10px] tracking-[0.3em] text-[#c9a227] font-body font-bold uppercase mb-1">Art Neelam Academy</p>
-              <h2 className="font-display text-2xl md:text-3xl font-bold text-[#1e3a5f] mb-2">CERTIFICATE OF COMPLETION</h2>
+              <h2 className="font-display text-2xl md:text-3xl font-bold text-[#1e3a5f] mb-3">CERTIFICATE OF COMPLETION</h2>
+
+              {/* Logo in center */}
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-3"
+                style={{ background: "radial-gradient(circle, #d4af37 0%, #c9a227 70%, #b8941f 100%)" }}>
+                <Award className="w-10 h-10 text-white" />
+              </div>
 
               <p className="text-xs text-[#666] font-body italic mb-4 max-w-md">
                 "Creativity takes courage, and every masterpiece begins with a single stroke."
@@ -143,13 +142,18 @@ export default function Certificate() {
                 and wish her continued success in all future creative endeavors.
               </p>
 
-              {/* Signature */}
+              {/* Gold seal + Signature */}
               <div className="flex items-end justify-between w-full max-w-md">
-                <div className="text-center">
-                  <p className="text-xs text-[#999] font-body mb-0.5">{today}</p>
-                  <div className="w-24 border-t border-[#ccc]" />
-                  <p className="text-[10px] text-[#999] font-body mt-0.5">Date</p>
+                {/* Gold Seal */}
+                <div className="flex flex-col items-center">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-1"
+                    style={{ background: "radial-gradient(circle, #d4af37 0%, #c9a227 70%, #b8941f 100%)", boxShadow: "0 2px 10px rgba(201,162,39,0.4)" }}>
+                    <Award className="w-8 h-8 text-white" />
+                  </div>
+                  <p className="text-[8px] text-[#999] font-body">{today}</p>
                 </div>
+
+                {/* Signature */}
                 <div className="text-center">
                   <p className="font-display text-sm font-bold text-[#1e3a5f] italic">Artist Neelam Suthar</p>
                   <div className="w-32 border-t border-[#ccc]" />

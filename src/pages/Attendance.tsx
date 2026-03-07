@@ -6,14 +6,15 @@ import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-type Status = "present" | "absent" | "late";
+type Status = "present" | "absent" | "bank_holiday" | "class_holiday";
 type StudentBasic = { id: string; name: string; roll_number: string; batch: string; whatsapp: string };
 type AttendanceRow = { id: string; student_id: string; date: string; status: string; batch: string | null };
 
 const statusConfig: Record<Status, { label: string; color: string; bg: string; dot: string }> = {
   present: { label: "P", color: "text-green-700", bg: "bg-accent", dot: "bg-green-400" },
   absent: { label: "A", color: "text-red-700", bg: "bg-red-50", dot: "bg-red-400" },
-  late: { label: "L", color: "text-amber-700", bg: "bg-warm", dot: "bg-amber-400" },
+  bank_holiday: { label: "B", color: "text-blue-700", bg: "bg-blue-50", dot: "bg-blue-400" },
+  class_holiday: { label: "C", color: "text-purple-700", bg: "bg-purple-50", dot: "bg-purple-400" },
 };
 
 function formatDate(d: Date) { return d.toISOString().slice(0, 10); }
@@ -72,7 +73,6 @@ export default function Attendance() {
   const filteredStudents = students.filter(s => selectedBatch === "All" || s.batch === selectedBatch);
   const presentCount = filteredStudents.filter(s => getStatus(s.id) === "present").length;
   const absentCount = filteredStudents.filter(s => getStatus(s.id) === "absent").length;
-  const lateCount = filteredStudents.filter(s => getStatus(s.id) === "late").length;
 
   const markAll = (status: Status) => { filteredStudents.forEach(s => markAttendance(s.id, status, s.batch)); };
 
@@ -99,11 +99,10 @@ export default function Attendance() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {[
           { label: "Present", count: presentCount, color: "bg-accent", textColor: "text-accent-foreground" },
           { label: "Absent", count: absentCount, color: "bg-red-50", textColor: "text-red-700" },
-          { label: "Late", count: lateCount, color: "bg-warm", textColor: "text-warm-foreground" },
         ].map(s => (
           <div key={s.label} className={`${s.color} rounded-xl p-3 text-center`}>
             <p className={`font-display text-2xl font-bold ${s.textColor}`}>{s.count}</p>
@@ -125,13 +124,10 @@ export default function Attendance() {
 
       {/* Quick Mark All */}
       <div className="flex gap-2">
-        {(["present", "absent", "late"] as Status[]).map(s => (
+        {(["present", "absent", "bank_holiday", "class_holiday"] as Status[]).map(s => (
           <button key={s} onClick={() => markAll(s)}
-            className={cn("flex-1 py-2 rounded-xl text-xs font-semibold font-body transition-all",
-              s === "present" ? "bg-accent text-accent-foreground hover:opacity-80" :
-              s === "absent" ? "bg-red-50 text-red-700 hover:opacity-80" :
-              "bg-warm text-warm-foreground hover:opacity-80")}>
-            All {s.charAt(0).toUpperCase() + s.slice(1)}
+            className={cn("flex-1 py-2 rounded-xl text-xs font-semibold font-body transition-all", statusConfig[s].bg, statusConfig[s].color, "hover:opacity-80")}>
+            All {statusConfig[s].label}
           </button>
         ))}
       </div>
@@ -154,7 +150,7 @@ export default function Attendance() {
                   <p className="text-[10px] text-muted-foreground font-body">{student.roll_number} • {student.batch.split(" (")[0]}</p>
                 </div>
                 <div className="flex gap-1.5">
-                  {(["present", "absent", "late"] as Status[]).map(s => (
+                  {(["present", "absent", "bank_holiday", "class_holiday"] as Status[]).map(s => (
                     <button key={s} onClick={() => markAttendance(student.id, s, student.batch)}
                       className={cn("w-9 h-9 rounded-xl text-xs font-bold font-body transition-all",
                         status === s ? `${statusConfig[s].bg} ${statusConfig[s].color} shadow-sm scale-105` :

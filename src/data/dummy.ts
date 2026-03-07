@@ -1,7 +1,7 @@
 export type LeadStatus = "new" | "follow-up" | "demo" | "converted" | "lost";
 export type Course = "Basic" | "Advanced" | "Professional";
 export type PaymentMethod = "UPI" | "Cash" | "Bank Transfer" | "Cheque";
-export type AttendanceStatus = "present" | "absent" | "late";
+export type AttendanceStatus = "present" | "absent" | "bank_holiday" | "class_holiday";
 
 export interface Lead {
   id: string;
@@ -139,12 +139,12 @@ export const DUMMY_ATTENDANCE: AttendanceRecord[] = [
   { studentId: "S001", date: "2024-02-19", status: "present", batch: "Morning A" },
   { studentId: "S002", date: "2024-02-19", status: "present", batch: "Evening B" },
   { studentId: "S003", date: "2024-02-19", status: "absent", batch: "Weekend" },
-  { studentId: "S004", date: "2024-02-19", status: "late", batch: "Morning A" },
+  { studentId: "S004", date: "2024-02-19", status: "absent", batch: "Morning A" },
   { studentId: "S005", date: "2024-02-19", status: "present", batch: "Evening B" },
   { studentId: "S001", date: "2024-02-18", status: "present", batch: "Morning A" },
   { studentId: "S002", date: "2024-02-18", status: "absent", batch: "Evening B" },
   { studentId: "S004", date: "2024-02-18", status: "present", batch: "Morning A" },
-  { studentId: "S005", date: "2024-02-18", status: "late", batch: "Evening B" },
+  { studentId: "S005", date: "2024-02-18", status: "absent", batch: "Evening B" },
   { studentId: "S001", date: "2024-02-17", status: "present", batch: "Morning A" },
   { studentId: "S002", date: "2024-02-17", status: "present", batch: "Evening B" },
   { studentId: "S003", date: "2024-02-17", status: "present", batch: "Weekend" },
