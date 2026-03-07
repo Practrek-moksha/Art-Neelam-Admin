@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Search, TrendingUp, X, Send, FileText, RefreshCw, ArrowUpCircle, Trash2, Printer } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
