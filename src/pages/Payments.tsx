@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, TrendingUp, X, Send } from "lucide-react";
+import { Plus, Search, TrendingUp, X, Send, FileText, RefreshCw, ArrowUpCircle, Trash2, Printer } from "lucide-react";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import logoImg from "@/assets/logo.png";
 
 const statusColors: Record<string, string> = {
   paid: "bg-accent text-accent-foreground",
@@ -14,10 +15,16 @@ type PaymentRow = {
   id: string; student_id: string; amount: number; method: string | null;
   date: string; installment_no: number | null; total_installments: number | null;
   notes: string | null; status: string;
-  students: { name: string; whatsapp: string; father_contact: string | null; mother_contact: string | null } | null;
+  students: { name: string; whatsapp: string; father_contact: string | null; mother_contact: string | null; roll_number: string; course: string; fee_amount: number; payment_plan: string | null } | null;
 };
 
-type StudentOption = { id: string; name: string; roll_number: string; whatsapp: string; father_contact: string | null; mother_contact: string | null };
+type StudentOption = {
+  id: string; name: string; roll_number: string; whatsapp: string;
+  father_contact: string | null; mother_contact: string | null;
+  fee_amount: number; course: string; payment_plan: string | null;
+};
+
+type PaymentType = "full" | "part" | "installment" | "renewal" | "upgrade";
 
 export default function Payments() {
   const [payments, setPayments] = useState<PaymentRow[]>([]);
@@ -25,14 +32,18 @@ export default function Payments() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showTnC, setShowTnC] = useState(false);
+  const [showInvoice, setShowInvoice] = useState<PaymentRow | null>(null);
+  const [paymentType, setPaymentType] = useState<PaymentType>("full");
   const [form, setForm] = useState({
-    student_id: "", amount: "", method: "UPI", installment_no: 1, total_installments: 1, notes: "", status: "paid", date: new Date().toISOString().slice(0, 10),
+    student_id: "", amount: "", method: "UPI", installment_no: 1, total_installments: 1,
+    notes: "", status: "paid", date: new Date().toISOString().slice(0, 10),
   });
 
   const fetchData = async () => {
     const [pRes, sRes] = await Promise.all([
-      supabase.from("payments").select("*, students(name, whatsapp, father_contact, mother_contact)").order("date", { ascending: false }),
-      supabase.from("students").select("id, name, roll_number, whatsapp, father_contact, mother_contact"),
+      supabase.from("payments").select("*, students(name, whatsapp, father_contact, mother_contact, roll_number, course, fee_amount, payment_plan)").order("date", { ascending: false }),
+      supabase.from("students").select("id, name, roll_number, whatsapp, father_contact, mother_contact, fee_amount, course, payment_plan"),
     ]);
     if (pRes.error) toast.error("Failed to load payments");
     if (sRes.error) toast.error("Failed to load students");
@@ -50,23 +61,86 @@ export default function Payments() {
   );
 
   const totalCollected = payments.filter(p => p.status === "paid").reduce((a, p) => a + p.amount, 0);
-  const totalPending = payments.filter(p => p.status === "pending").reduce((a, p) => a + p.amount, 0);
+  const totalPending = payments.filter(p => p.status === "pending" || p.status === "partial").reduce((a, p) => a + p.amount, 0);
+
+  const selectedStudent = students.find(s => s.id === form.student_id);
+
+  // Auto-calc installment details
+  const getInstallmentSchedule = () => {
+    if (!selectedStudent || paymentType !== "installment") return [];
+    const plan = selectedStudent.payment_plan || "Monthly";
+    const fee = selectedStudent.fee_amount;
+    let intervals = 1;
+    if (plan === "Monthly") intervals = 12;
+    else if (plan === "Quarterly") intervals = 4;
+    else if (plan === "Yearly") intervals = 1;
+    const perInstallment = Math.ceil(fee / intervals);
+    const schedule = [];
+    const start = new Date(form.date);
+    for (let i = 0; i < intervals; i++) {
+      const d = new Date(start);
+      if (plan === "Monthly") d.setMonth(d.getMonth() + i);
+      else if (plan === "Quarterly") d.setMonth(d.getMonth() + i * 3);
+      else d.setFullYear(d.getFullYear() + i);
+      schedule.push({ no: i + 1, date: d.toISOString().slice(0, 10), amount: perInstallment });
+    }
+    return schedule;
+  };
+
+  useEffect(() => {
+    if (paymentType === "full" && selectedStudent) {
+      setForm(f => ({ ...f, amount: String(selectedStudent.fee_amount), installment_no: 1, total_installments: 1, status: "paid" }));
+    } else if (paymentType === "installment" && selectedStudent) {
+      const schedule = getInstallmentSchedule();
+      const existingCount = payments.filter(p => p.student_id === form.student_id && p.status === "paid").length;
+      setForm(f => ({
+        ...f,
+        amount: schedule.length > 0 ? String(schedule[0].amount) : "",
+        installment_no: existingCount + 1,
+        total_installments: schedule.length,
+        status: "paid",
+      }));
+    } else if (paymentType === "part") {
+      setForm(f => ({ ...f, status: "partial", installment_no: 1, total_installments: 1 }));
+    } else if (paymentType === "renewal" || paymentType === "upgrade") {
+      setForm(f => ({ ...f, notes: paymentType === "renewal" ? "Course Renewal" : "Course Upgrade", status: "paid" }));
+    }
+  }, [paymentType, form.student_id]);
 
   const addPayment = async () => {
-    if (!form.amount || !form.student_id) {
-      toast.error("Student and amount are required");
-      return;
-    }
+    if (!form.amount || !form.student_id) { toast.error("Student and amount required"); return; }
     const { error } = await supabase.from("payments").insert({
       student_id: form.student_id, amount: Number(form.amount), method: form.method,
       date: form.date, installment_no: form.installment_no, total_installments: form.total_installments,
       notes: form.notes || null, status: form.status,
     });
-    if (error) { toast.error("Failed to record payment: " + error.message); return; }
+    if (error) { toast.error("Failed: " + error.message); return; }
+
+    // Auto-create pending future installments
+    if (paymentType === "installment") {
+      const schedule = getInstallmentSchedule();
+      for (let i = 1; i < schedule.length; i++) {
+        if (form.installment_no <= i) {
+          await supabase.from("payments").insert({
+            student_id: form.student_id, amount: schedule[i].amount, method: form.method,
+            date: schedule[i].date, installment_no: i + 1, total_installments: schedule.length,
+            notes: `Installment ${i + 1}`, status: "pending",
+          });
+        }
+      }
+    }
+
     toast.success("Payment recorded!");
     setShowForm(false);
-    setForm(f => ({ ...f, amount: "", notes: "", installment_no: f.installment_no + 1 }));
+    setForm(f => ({ ...f, amount: "", notes: "" }));
     fetchData();
+  };
+
+  const deletePayment = async (id: string) => {
+    if (!confirm("Delete this payment record?")) return;
+    const { error } = await supabase.from("payments").delete().eq("id", id);
+    if (error) toast.error("Failed to delete");
+    else { toast.success("Deleted"); setPayments(prev => prev.filter(p => p.id !== id)); }
   };
 
   const sendReminderToParent = (p: PaymentRow) => {
@@ -75,19 +149,27 @@ export default function Payments() {
     openWhatsApp(parentPhone, templates.feeReminder(p.students!.name, p.amount, p.date));
   };
 
+  const printInvoice = () => { window.print(); };
+
   if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Payments</h1>
           <p className="text-sm text-muted-foreground font-body">{payments.length} transactions</p>
         </div>
-        <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-1.5 px-3 py-2 gradient-primary text-primary-foreground rounded-xl text-xs font-semibold shadow-active hover:opacity-90 transition-opacity">
-          <Plus className="w-4 h-4" /> Record
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowTnC(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-secondary text-secondary-foreground rounded-xl text-xs font-semibold hover:opacity-90">
+            <FileText className="w-4 h-4" /> T&C
+          </button>
+          <button onClick={() => setShowForm(true)}
+            className="flex items-center gap-1.5 px-3 py-2 gradient-primary text-primary-foreground rounded-xl text-xs font-semibold shadow-active hover:opacity-90">
+            <Plus className="w-4 h-4" /> Record
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -114,7 +196,7 @@ export default function Payments() {
               <div>
                 <p className="font-semibold text-foreground font-body text-sm">{p.students?.name || "Unknown"}</p>
                 <p className="text-xs text-muted-foreground font-body mt-0.5">
-                  Installment {p.installment_no}/{p.total_installments} • {p.method} • {new Date(p.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}
+                  Inst. {p.installment_no}/{p.total_installments} • {p.method} • {new Date(p.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}
                 </p>
                 {p.notes && <p className="text-[10px] text-muted-foreground font-body mt-1">{p.notes}</p>}
               </div>
@@ -123,30 +205,59 @@ export default function Payments() {
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${statusColors[p.status] || ""}`}>{p.status}</span>
               </div>
             </div>
-            {p.status === "pending" && p.students && (
-              <button onClick={() => sendReminderToParent(p)}
-                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-warm text-warm-foreground text-[10px] font-semibold hover:opacity-80 transition-opacity">
-                <Send className="w-3 h-3" /> Send Fee Reminder to Parent
+            <div className="flex gap-1.5 mt-2">
+              {(p.status === "pending" || p.status === "partial") && p.students && (
+                <button onClick={() => sendReminderToParent(p)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-warm text-warm-foreground text-[10px] font-semibold hover:opacity-80">
+                  <Send className="w-3 h-3" /> Remind
+                </button>
+              )}
+              <button onClick={() => setShowInvoice(p)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-[10px] font-semibold hover:opacity-80">
+                <FileText className="w-3 h-3" /> Invoice
               </button>
-            )}
+              <button onClick={() => deletePayment(p.id)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-[10px] font-semibold hover:opacity-80 ml-auto">
+                <Trash2 className="w-3 h-3" /> Delete
+              </button>
+            </div>
           </div>
         ))}
         {filtered.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">No payments found.</p>}
       </div>
 
+      {/* Record Payment Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={() => setShowForm(false)}>
-          <div className="bg-card rounded-t-3xl md:rounded-2xl w-full md:max-w-md p-6 shadow-active animate-fade-in" onClick={e => e.stopPropagation()}>
+          <div className="bg-card rounded-t-3xl md:rounded-2xl w-full md:max-w-md p-6 shadow-active animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-xl font-bold text-foreground">Record Payment</h2>
               <button onClick={() => setShowForm(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
             </div>
+
+            {/* Payment Type */}
+            <div className="flex gap-1.5 mb-4 flex-wrap">
+              {([
+                { key: "full", label: "Full", icon: "💰" },
+                { key: "part", label: "Part", icon: "½" },
+                { key: "installment", label: "Installment", icon: "📅" },
+                { key: "renewal", label: "Renewal", icon: "🔄" },
+                { key: "upgrade", label: "Upgrade", icon: "⬆️" },
+              ] as { key: PaymentType; label: string; icon: string }[]).map(t => (
+                <button key={t.key} onClick={() => setPaymentType(t.key)}
+                  className={cn("px-3 py-1.5 rounded-xl text-xs font-semibold font-body border transition-all",
+                    paymentType === t.key ? "border-primary bg-primary-soft text-primary" : "border-border text-muted-foreground")}>
+                  {t.icon} {t.label}
+                </button>
+              ))}
+            </div>
+
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-semibold text-muted-foreground font-body">Student</label>
                 <select value={form.student_id} onChange={e => setForm(p => ({ ...p, student_id: e.target.value }))}
                   className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
-                  {students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.roll_number})</option>)}
+                  {students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.roll_number}) - ₹{s.fee_amount}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -177,18 +288,34 @@ export default function Payments() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground font-body">Installment #</label>
-                  <input type="number" value={form.installment_no} onChange={e => setForm(p => ({ ...p, installment_no: Number(e.target.value) }))}
-                    className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              {paymentType === "installment" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground font-body">Installment #</label>
+                    <input type="number" value={form.installment_no} onChange={e => setForm(p => ({ ...p, installment_no: Number(e.target.value) }))}
+                      className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground font-body">Total Installments</label>
+                    <input type="number" value={form.total_installments} onChange={e => setForm(p => ({ ...p, total_installments: Number(e.target.value) }))}
+                      className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground font-body">Total Installments</label>
-                  <input type="number" value={form.total_installments} onChange={e => setForm(p => ({ ...p, total_installments: Number(e.target.value) }))}
-                    className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              )}
+
+              {/* Installment Schedule Preview */}
+              {paymentType === "installment" && getInstallmentSchedule().length > 0 && (
+                <div className="bg-muted rounded-xl p-3">
+                  <p className="text-xs font-semibold text-foreground font-body mb-2">Payment Schedule</p>
+                  {getInstallmentSchedule().map(s => (
+                    <div key={s.no} className="flex justify-between text-[10px] font-body text-muted-foreground py-0.5">
+                      <span>#{s.no} — {new Date(s.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}</span>
+                      <span className="font-semibold text-foreground">₹{s.amount.toLocaleString()}</span>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              )}
+
               <div>
                 <label className="text-xs font-semibold text-muted-foreground font-body">Notes</label>
                 <input type="text" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
@@ -198,6 +325,89 @@ export default function Payments() {
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl border border-border text-sm font-semibold font-body text-muted-foreground hover:bg-muted">Cancel</button>
               <button onClick={addPayment} className="flex-1 py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold font-body hover:opacity-90">Record</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* T&C Preview */}
+      {showTnC && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={() => setShowTnC(false)}>
+          <div className="bg-card rounded-2xl w-full max-w-2xl h-[80vh] shadow-active animate-fade-in flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="font-display font-bold text-foreground">Terms & Conditions</h2>
+              <button onClick={() => setShowTnC(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
+            </div>
+            <iframe src="/artneelam_terms_conditions.pdf" className="flex-1 w-full rounded-b-2xl" />
+          </div>
+        </div>
+      )}
+
+      {/* Invoice Modal */}
+      {showInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={() => setShowInvoice(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-active animate-fade-in" onClick={e => e.stopPropagation()}>
+            <div className="p-6 print:p-4" id="invoice-area">
+              {/* Invoice Header */}
+              <div className="flex items-center justify-between mb-6 border-b border-border pb-4">
+                <div className="flex items-center gap-3">
+                  <img src={logoImg} alt="Art Neelam" className="w-16 h-auto" />
+                  <div>
+                    <h2 className="font-display font-bold text-[#1e3a5f] text-lg">Art Neelam Academy</h2>
+                    <p className="text-[10px] text-[#666] font-body">Drawing & Painting Classes</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-display font-bold text-[#1e3a5f] text-sm">INVOICE</p>
+                  <p className="text-[10px] text-[#999] font-body">#{showInvoice.id.slice(0, 8).toUpperCase()}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <p className="text-[10px] text-[#999] font-body">Billed To</p>
+                  <p className="text-sm font-semibold text-[#1e3a5f] font-body">{showInvoice.students?.name}</p>
+                  <p className="text-[10px] text-[#666] font-body">{showInvoice.students?.roll_number}</p>
+                  <p className="text-[10px] text-[#666] font-body">{showInvoice.students?.course} Course</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-[#999] font-body">Date</p>
+                  <p className="text-sm font-semibold text-[#1e3a5f] font-body">{new Date(showInvoice.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
+                  <p className="text-[10px] text-[#666] font-body mt-1">Method: {showInvoice.method}</p>
+                </div>
+              </div>
+
+              <div className="bg-[#fdf8f0] rounded-xl p-4 mb-4">
+                <div className="flex justify-between text-xs font-body text-[#666] border-b border-[#e5d5c0] pb-2 mb-2">
+                  <span>Description</span>
+                  <span>Amount</span>
+                </div>
+                <div className="flex justify-between text-sm font-body">
+                  <span className="text-[#1e3a5f] font-semibold">
+                    {showInvoice.students?.course} Course Fee
+                    {showInvoice.total_installments && showInvoice.total_installments > 1 && ` (Inst. ${showInvoice.installment_no}/${showInvoice.total_installments})`}
+                  </span>
+                  <span className="font-display font-bold text-[#1e3a5f]">₹{showInvoice.amount.toLocaleString()}</span>
+                </div>
+                {showInvoice.notes && <p className="text-[10px] text-[#999] font-body mt-1">{showInvoice.notes}</p>}
+              </div>
+
+              <div className="flex justify-between items-center bg-[#1e3a5f] text-white rounded-xl px-4 py-3">
+                <span className="text-sm font-semibold font-body">Total Paid</span>
+                <span className="font-display font-bold text-xl">₹{showInvoice.amount.toLocaleString()}</span>
+              </div>
+
+              <div className="mt-4 text-center">
+                <p className="text-[9px] text-[#999] font-body">Thank you for choosing Art Neelam Academy</p>
+                <p className="text-[10px] font-semibold text-[#1e3a5f] font-body">📞 +91 9920546217</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 p-4 border-t border-border print:hidden">
+              <button onClick={() => setShowInvoice(null)} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold text-muted-foreground font-body">Close</button>
+              <button onClick={printInvoice} className="flex-1 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold font-body flex items-center justify-center gap-2">
+                <Printer className="w-4 h-4" /> Print
+              </button>
             </div>
           </div>
         </div>
