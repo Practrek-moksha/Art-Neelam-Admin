@@ -49,8 +49,8 @@ export default function Students() {
     guardian_name: "", whatsapp: "", email: "", course: "Basic",
     batch: BATCHES[0], enrollment_date: new Date().toISOString().slice(0, 10),
     validity_start: new Date().toISOString().slice(0, 10), validity_end: "",
-    total_sessions: 48, fee_amount: 12000, payment_plan: "Monthly",
-    discount_amount: 0, discount_percent: 0,
+    total_sessions: 36, fee_amount: 9000, payment_plan: "Full Payment",
+    discount_amount: 0, discount_percent: 0, status: "new",
   };
 
   const [form, setForm] = useState(defaultForm);
