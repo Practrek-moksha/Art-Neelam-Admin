@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Printer, Search } from "lucide-react";
+import { Printer, Search, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logoImg from "@/assets/logo.png";
@@ -15,7 +15,7 @@ export default function IDCard() {
   const [selectedId, setSelectedId] = useState<string>("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const [printAll, setPrintAll] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -26,7 +26,6 @@ export default function IDCard() {
       const list = data || [];
       setStudents(list);
 
-      // Check URL params for pre-selection
       const params = new URLSearchParams(window.location.search);
       const preId = params.get("id");
       if (preId && list.find(s => s.id === preId)) setSelectedId(preId);
@@ -50,10 +49,16 @@ export default function IDCard() {
           <h1 className="font-display text-2xl font-bold text-foreground">ID Card Generator</h1>
           <p className="text-sm text-muted-foreground font-body">Generate & print student ID cards</p>
         </div>
-        <button onClick={() => window.print()}
-          className="flex items-center gap-1.5 px-3 py-2 gradient-primary text-primary-foreground rounded-xl text-xs font-semibold shadow-active hover:opacity-90">
-          <Printer className="w-4 h-4" /> Print
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => { setPrintAll(true); setTimeout(() => window.print(), 300); }}
+            className="flex items-center gap-1.5 px-3 py-2 bg-secondary text-secondary-foreground rounded-xl text-xs font-semibold hover:opacity-90">
+            <Download className="w-4 h-4" /> Print All
+          </button>
+          <button onClick={() => { setPrintAll(false); window.print(); }}
+            className="flex items-center gap-1.5 px-3 py-2 gradient-primary text-primary-foreground rounded-xl text-xs font-semibold shadow-active hover:opacity-90">
+            <Printer className="w-4 h-4" /> Print
+          </button>
+        </div>
       </div>
 
       <div className="relative print:hidden">
@@ -74,66 +79,25 @@ export default function IDCard() {
         ))}
       </div>
 
-      {/* ID Card - Clean Professional Design */}
-      {student && (
+      {/* Single ID Card Preview */}
+      {student && !printAll && (
         <div className="flex justify-center">
-          <div ref={cardRef} id="id-card-print-area" className="print:shadow-none" style={{ width: "360px" }}>
-            {/* Front of Card */}
-            <div className="rounded-2xl overflow-hidden shadow-active print:shadow-none print:rounded-none"
-              style={{ background: "linear-gradient(135deg, hsl(220 40% 20%), hsl(220 45% 30%))" }}>
-              
-              {/* Top Banner with Logo */}
-              <div className="px-5 pt-5 pb-3 flex items-center gap-3">
-                <img src={logoImg} alt="Art Neelam" className="w-16 h-16 rounded-xl object-contain" />
-                <div>
-                  <h2 className="font-display font-bold text-lg leading-tight" style={{ color: "#d4af37" }}>Art Neelam Academy</h2>
-                  <p className="text-[10px] font-body font-medium tracking-wide" style={{ color: "rgba(255,255,255,0.6)" }}>STUDENT IDENTITY CARD</p>
-                </div>
-              </div>
-
-              {/* Accent Line */}
-              <div className="h-1 mx-5" style={{ background: "linear-gradient(90deg, #d4af37, #c9a227, transparent)" }} />
-
-              {/* Body */}
-              <div className="px-5 py-4 flex gap-4">
-                {/* Photo */}
-                <div className="flex-shrink-0">
-                  <div className="w-20 h-24 rounded-xl overflow-hidden flex items-center justify-center"
-                    style={{ border: "2px solid rgba(212,175,55,0.5)", background: "rgba(255,255,255,0.08)" }}>
-                    {student.photo_url ? (
-                      <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="font-display font-bold text-3xl" style={{ color: "#d4af37" }}>{student.name[0]}</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Details */}
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <h3 className="font-display font-bold text-base leading-tight truncate" style={{ color: "#ffffff" }}>{student.name}</h3>
-                  
-                  <div className="space-y-1">
-                    <IDField label="ID" value={student.roll_number} highlight />
-                    <IDField label="Course" value={student.course} />
-                    <IDField label="Batch" value={student.batch.split(" (")[0]} />
-                    <IDField label="Phone" value={student.whatsapp} />
-                    <IDField label="Parent" value={student.father_contact || student.mother_contact || "—"} />
-                    <IDField label="Valid Till" value={student.validity_end ? new Date(student.validity_end).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="px-5 pb-4">
-                <div className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: "linear-gradient(90deg, #d4af37, #c9a227)" }}>
-                  <span className="text-[9px] font-body font-bold" style={{ color: "hsl(220 40% 20%)" }}>artneelam.academy</span>
-                  <span className="text-[9px] font-body font-bold" style={{ color: "hsl(220 40% 20%)" }}>📞 +91 99205 46217</span>
-                </div>
-              </div>
-            </div>
+          <div id="id-card-print-area" className="print:shadow-none" style={{ width: "360px" }}>
+            <SingleIDCard student={student} />
           </div>
         </div>
       )}
+
+      {/* Print All — 4 per page grid, only visible during print */}
+      <div id="id-card-print-all" className={printAll ? "" : "hidden"}>
+        <div className="id-card-grid">
+          {students.map(s => (
+            <div key={s.id} className="id-card-cell">
+              <SingleIDCard student={s} />
+            </div>
+          ))}
+        </div>
+      </div>
 
       {students.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">No students found. Add students first.</p>}
 
@@ -159,6 +123,63 @@ export default function IDCard() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function SingleIDCard({ student }: { student: StudentCard }) {
+  return (
+    <div className="rounded-2xl overflow-hidden shadow-active print:shadow-none print:rounded-lg"
+      style={{ background: "linear-gradient(135deg, hsl(220 40% 15%), hsl(220 45% 25%))" }}>
+      
+      {/* Top Banner with Logo */}
+      <div className="px-5 pt-5 pb-3 flex items-center gap-3">
+        <img src={logoImg} alt="Art Neelam" className="w-20 h-20 rounded-xl object-contain" />
+        <div>
+          <h2 className="font-display font-bold text-lg leading-tight" style={{ color: "#d4af37" }}>Art Neelam Academy</h2>
+          <p className="text-[10px] font-body font-medium tracking-wide" style={{ color: "rgba(255,255,255,0.6)" }}>STUDENT IDENTITY CARD</p>
+        </div>
+      </div>
+
+      {/* Accent Line */}
+      <div className="h-1 mx-5" style={{ background: "linear-gradient(90deg, #d4af37, #c9a227, transparent)" }} />
+
+      {/* Body */}
+      <div className="px-5 py-4 flex gap-4">
+        {/* Photo */}
+        <div className="flex-shrink-0">
+          <div className="w-20 h-24 rounded-xl overflow-hidden flex items-center justify-center"
+            style={{ border: "2px solid rgba(212,175,55,0.5)", background: "rgba(255,255,255,0.08)" }}>
+            {student.photo_url ? (
+              <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="font-display font-bold text-3xl" style={{ color: "#d4af37" }}>{student.name[0]}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Details */}
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <h3 className="font-display font-bold text-base leading-tight truncate" style={{ color: "#ffffff" }}>{student.name}</h3>
+          
+          <div className="space-y-1">
+            <IDField label="ID" value={student.roll_number} highlight />
+            <IDField label="Course" value={student.course} />
+            <IDField label="Batch" value={student.batch.split(" (")[0]} />
+            <IDField label="Phone" value={student.whatsapp} />
+            <IDField label="Parent" value={student.father_contact || student.mother_contact || "—"} />
+            <IDField label="Valid Till" value={student.validity_end ? new Date(student.validity_end).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"} />
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="px-5 pb-4">
+        <div className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: "linear-gradient(90deg, #d4af37, #c9a227)" }}>
+          <span className="text-[9px] font-body font-bold" style={{ color: "hsl(220 40% 15%)" }}>artneelam.academy</span>
+          <span className="text-[9px] font-body font-bold" style={{ color: "hsl(220 40% 15%)" }}>📞 +91 99677 01108</span>
+        </div>
+      </div>
     </div>
   );
 }

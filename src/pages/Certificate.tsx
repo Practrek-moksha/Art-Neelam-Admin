@@ -106,7 +106,7 @@ export default function Certificate() {
       {student && (
         <div className="flex justify-center">
           <div ref={certRef} id="certificate-print-area"
-            className="w-full max-w-sm rounded-lg overflow-hidden shadow-active print:shadow-none print:max-w-none print:w-[210mm] print:min-h-[297mm] print:rounded-none relative"
+            className="w-full max-w-sm rounded-lg overflow-hidden shadow-active print:shadow-none print:max-w-none print:w-[210mm] print:min-h-[297mm] print:rounded-none relative cert-printable"
             style={{
               aspectRatio: "1/1.4",
               background: "linear-gradient(180deg, #fce4ec 0%, #f8bbd0 20%, #fce4ec 50%, #fff0f3 100%)",
