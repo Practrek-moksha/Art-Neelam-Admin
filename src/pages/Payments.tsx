@@ -107,7 +107,7 @@ export default function Payments() {
         ...f,
         amount: schedule.length > 0 ? String(schedule[nextIdx]?.amount || "") : "",
         installment_no: nextIdx + 1,
-        total_installments: 3,
+        total_installments: schedule.length,
         status: "paid",
       }));
     } else if (paymentType === "part") {
