@@ -77,8 +77,10 @@ export default function Payments() {
   const getInstallmentSchedule = () => {
     if (!selectedStudent) return [];
     const fee = selectedStudent.fee_amount;
+    const plan = selectedStudent.payment_plan || "50-30-20 Installment";
+    const splits = PLAN_SPLITS[plan] || PLAN_SPLITS["50-30-20 Installment"];
     const start = new Date(form.date);
-    return INSTALLMENT_SPLITS.map((pct, i) => {
+    return splits.map((pct, i) => {
       const d = new Date(start);
       d.setMonth(d.getMonth() + i);
       return { no: i + 1, date: d.toISOString().slice(0, 10), amount: Math.round(fee * pct), pct: Math.round(pct * 100) };
