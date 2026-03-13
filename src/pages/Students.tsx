@@ -150,16 +150,6 @@ export default function Students() {
 
   if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
-  // Auto-update fee when course changes
-  useEffect(() => {
-    const config = COURSE_FEES[form.course];
-    if (config) {
-      setForm(prev => ({ ...prev, fee_amount: config.fee, total_sessions: config.sessions }));
-    }
-  }, [form.course]);
-
-  // Student status filter
-  const [statusFilter, setStatusFilter] = useState("All");
   
   // Bifurcate students
   const isNewStudent = (s: Student) => {
