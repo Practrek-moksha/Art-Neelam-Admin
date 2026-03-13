@@ -221,7 +221,11 @@ export default function Students() {
       </div>
 
       <div className="space-y-2">
-        {filtered.map(s => (
+        {filtered.filter(s => {
+          if (statusFilter === "All") return true;
+          if (statusFilter === "new") return isNewStudent(s);
+          return s.status === statusFilter;
+        }).map(s => (
           <div key={s.id} className="bg-card rounded-2xl shadow-card border border-border p-4 hover:border-primary/30 hover:shadow-active transition-all">
             <div className="flex items-center gap-3">
               <Link to={`/students/${s.id}`} className="flex items-center gap-3 flex-1 min-w-0">
@@ -236,9 +240,12 @@ export default function Students() {
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${courseColors[s.course] || ""}`}>{s.course}</span>
                     <span className="text-[10px] text-muted-foreground font-body">{s.batch.split(" (")[0]}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${s.status === "active" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[s.status] || STATUS_COLORS.active}`}>
                       {s.status}
                     </span>
+                    {isNewStudent(s) && s.status !== "new" && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-primary-soft text-primary">new</span>
+                    )}
                   </div>
                   <p className="text-[10px] text-muted-foreground font-body mt-0.5">
                     {s.validity_end ? `Valid: ${new Date(s.validity_end).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}` : ""} • ₹{s.fee_amount.toLocaleString()}
