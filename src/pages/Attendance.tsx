@@ -90,23 +90,48 @@ export default function Attendance() {
     setPendingChanges(prev => ({ ...prev, ...changes }));
   };
 
+  const checkConsecutiveAbsents = (studentId: string, allRecords: AttendanceRow[]) => {
+    const studentRecords = allRecords
+      .filter(r => r.student_id === studentId)
+      .sort((a, b) => b.date.localeCompare(a.date));
+    let consecutive = 0;
+    for (const r of studentRecords) {
+      if (r.status === "absent") consecutive++;
+      else break;
+    }
+    return consecutive >= 4;
+  };
+
   const saveAttendance = async () => {
     if (Object.keys(pendingChanges).length === 0) { toast("No changes to save"); return; }
     setSaving(true);
     try {
+      const updatedRecords = [...records];
       for (const [studentId, status] of Object.entries(pendingChanges)) {
         const student = students.find(s => s.id === studentId);
-        const existing = records.find(r => r.student_id === studentId && r.date === selectedDate);
+        const existing = updatedRecords.find(r => r.student_id === studentId && r.date === selectedDate);
         if (existing) {
           await supabase.from("attendance").update({ status }).eq("id", existing.id);
-          setRecords(prev => prev.map(r => r.id === existing.id ? { ...r, status } : r));
+          const idx = updatedRecords.findIndex(r => r.id === existing.id);
+          if (idx >= 0) updatedRecords[idx] = { ...updatedRecords[idx], status };
         } else {
           const { data, error } = await supabase.from("attendance").insert({
             student_id: studentId, date: selectedDate, status, batch: student?.batch || null
           }).select().single();
-          if (!error && data) setRecords(prev => [...prev, data]);
+          if (!error && data) updatedRecords.push(data);
         }
       }
+      setRecords(updatedRecords);
+
+      // Auto-flag inactive after 4 consecutive absents
+      for (const studentId of Object.keys(pendingChanges)) {
+        if (checkConsecutiveAbsents(studentId, updatedRecords)) {
+          const student = students.find(s => s.id === studentId);
+          await supabase.from("students").update({ status: "inactive" }).eq("id", studentId);
+          if (student) toast.warning(`${student.name} marked inactive (4+ consecutive absences)`);
+        }
+      }
+
       setPendingChanges({});
       toast.success("Attendance saved!");
     } catch { toast.error("Failed to save"); }

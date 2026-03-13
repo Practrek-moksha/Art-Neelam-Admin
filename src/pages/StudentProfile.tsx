@@ -1,9 +1,19 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Phone, MessageCircle, IdCard, Calendar, CreditCard, User, BookOpen, Clock, Send, Award, KeyRound, Loader2 } from "lucide-react";
+import { ArrowLeft, Phone, MessageCircle, IdCard, Calendar, CreditCard, User, BookOpen, Clock, Send, Award, KeyRound, Loader2, Plus, X, FileText, Printer } from "lucide-react";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import logoImg from "@/assets/logo.png";
+
+const PLAN_SPLITS: Record<string, number[]> = {
+  "Full Payment": [1.0],
+  "50-30-20 Installment": [0.5, 0.3, 0.2],
+  "50-50 Custom": [0.5, 0.5],
+};
+
+type PaymentType = "full" | "part" | "installment";
 
 export default function StudentProfile() {
   const { id } = useParams<{ id: string }>();
@@ -11,21 +21,23 @@ export default function StudentProfile() {
   const [attendance, setAttendance] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showFeeForm, setShowFeeForm] = useState(false);
+  const [showInvoice, setShowInvoice] = useState<any>(null);
 
-  useEffect(() => {
+  const fetchData = async () => {
     if (!id) return;
-    (async () => {
-      const [sRes, aRes, pRes] = await Promise.all([
-        supabase.from("students").select("*").eq("id", id).single(),
-        supabase.from("attendance").select("*").eq("student_id", id).order("date", { ascending: false }),
-        supabase.from("payments").select("*").eq("student_id", id).order("date", { ascending: false }),
-      ]);
-      setStudent(sRes.data);
-      setAttendance(aRes.data || []);
-      setPayments(pRes.data || []);
-      setLoading(false);
-    })();
-  }, [id]);
+    const [sRes, aRes, pRes] = await Promise.all([
+      supabase.from("students").select("*").eq("id", id).single(),
+      supabase.from("attendance").select("*").eq("student_id", id).order("date", { ascending: false }),
+      supabase.from("payments").select("*").eq("student_id", id).order("date", { ascending: false }),
+    ]);
+    setStudent(sRes.data);
+    setAttendance(aRes.data || []);
+    setPayments(pRes.data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, [id]);
 
   if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
@@ -52,15 +64,14 @@ export default function StudentProfile() {
   const discountVal = student.discount_percent > 0
     ? Math.round(student.fee_amount * student.discount_percent / 100)
     : (student.discount_amount || 0);
-  const finalFee = Math.max(0, student.fee_amount + discountVal); // fee_amount is already discounted if set during registration
   const feeProgress = student.fee_amount > 0 ? Math.round((totalPaid / student.fee_amount) * 100) : 0;
+  const balanceDue = Math.max(0, student.fee_amount - totalPaid);
 
   const validityEnd = student.validity_end ? new Date(student.validity_end) : new Date();
   const today = new Date();
   const daysLeft = Math.max(0, Math.ceil((validityEnd.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
 
-  // Next due date: earliest pending payment
-  const nextDue = payments.filter(p => p.status === "pending").sort((a, b) => a.date.localeCompare(b.date))[0];
+  const nextDue = payments.filter(p => p.status === "pending").sort((a: any, b: any) => a.date.localeCompare(b.date))[0];
 
   const courseColors: Record<string, string> = {
     Basic: "bg-accent text-accent-foreground",
@@ -88,9 +99,9 @@ export default function StudentProfile() {
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${courseColors[student.course] || ""}`}>{student.course}</span>
               <span className="text-[10px] text-muted-foreground font-body">{student.batch?.split(" (")[0]}</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${student.status === "active" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>{student.status}</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${student.status === "active" ? "bg-accent text-accent-foreground" : student.status === "new" ? "bg-primary-soft text-primary" : student.status === "inactive" ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"}`}>{student.status}</span>
               {isEligibleForCert && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-700 flex items-center gap-1">
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-warm text-warm-foreground flex items-center gap-1">
                   <Award className="w-3 h-3" /> Certificate Eligible
                 </span>
               )}
@@ -108,7 +119,7 @@ export default function StudentProfile() {
           <button onClick={() => openWhatsApp(student.whatsapp, templates.birthdayWish(student.name))} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary-soft text-primary text-[10px] font-semibold hover:opacity-80"><Send className="w-3 h-3" /> Birthday Wish</button>
           <button onClick={() => openWhatsApp(student.whatsapp, templates.welcomeStudent(student.name, student.course, student.batch))} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-[10px] font-semibold hover:opacity-80"><Send className="w-3 h-3" /> Welcome Msg</button>
           {isEligibleForCert && (
-            <Link to="/certificates" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-100 text-amber-700 text-[10px] font-semibold hover:opacity-80"><Award className="w-3 h-3" /> Generate Certificate</Link>
+            <Link to="/certificates" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-warm text-warm-foreground text-[10px] font-semibold hover:opacity-80"><Award className="w-3 h-3" /> Generate Certificate</Link>
           )}
         </div>
       </div>
@@ -121,9 +132,15 @@ export default function StudentProfile() {
         <StatCard icon={Clock} label="Validity" value={`${daysLeft}d`} sub={student.validity_end ? new Date(student.validity_end).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }) : "—"} color={daysLeft < 30 ? "destructive" : "accent"} />
       </div>
 
-      {/* Fee Progress Bar */}
+      {/* Fee Summary + Record Payment */}
       <div className="bg-card rounded-2xl shadow-card border border-border p-4">
-        <h3 className="font-display font-bold text-foreground text-sm mb-3">Fee Summary</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display font-bold text-foreground text-sm">Fee Summary</h3>
+          <button onClick={() => setShowFeeForm(true)}
+            className="flex items-center gap-1 px-3 py-1.5 gradient-primary text-primary-foreground rounded-xl text-[10px] font-semibold shadow-active hover:opacity-90">
+            <Plus className="w-3 h-3" /> Record Fee
+          </button>
+        </div>
         <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
           <div className="h-full gradient-primary rounded-full transition-all duration-500" style={{ width: `${Math.min(100, feeProgress)}%` }} />
         </div>
@@ -131,7 +148,7 @@ export default function StudentProfile() {
           <div><span className="text-muted-foreground">Total Fee:</span> <span className="font-semibold text-foreground">₹{student.fee_amount.toLocaleString()}</span></div>
           {discountVal > 0 && <div><span className="text-muted-foreground">Discount:</span> <span className="font-semibold text-accent-foreground">₹{discountVal.toLocaleString()}</span></div>}
           <div><span className="text-muted-foreground">Paid:</span> <span className="font-semibold text-foreground">₹{totalPaid.toLocaleString()}</span></div>
-          <div><span className="text-muted-foreground">Pending:</span> <span className="font-semibold text-destructive">₹{totalPending.toLocaleString()}</span></div>
+          <div><span className="text-muted-foreground">Balance Due:</span> <span className="font-semibold text-destructive">₹{balanceDue.toLocaleString()}</span></div>
           {nextDue && <div className="col-span-2"><span className="text-muted-foreground">Next Due:</span> <span className="font-semibold text-foreground">{new Date(nextDue.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}</span></div>}
         </div>
       </div>
@@ -161,18 +178,43 @@ export default function StudentProfile() {
 
       {/* Payment History */}
       <div className="bg-card rounded-2xl shadow-card border border-border p-4">
-        <h3 className="font-display font-bold text-foreground text-sm mb-3">Payment History</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display font-bold text-foreground text-sm">Payment History</h3>
+          {payments.length > 0 && (
+            <Link to="/payments" className="text-[10px] text-primary font-semibold font-body hover:underline">View All →</Link>
+          )}
+        </div>
         {payments.length === 0 ? (
-          <p className="text-xs text-muted-foreground font-body">No payments recorded.</p>
+          <div className="text-center py-4">
+            <p className="text-xs text-muted-foreground font-body mb-2">No payments recorded yet.</p>
+            <button onClick={() => setShowFeeForm(true)}
+              className="text-xs text-primary font-semibold font-body hover:underline">
+              + Record first payment
+            </button>
+          </div>
         ) : (
           <div className="space-y-2">
             {payments.map((p: any) => (
               <div key={p.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                <div>
+                <div className="flex-1">
                   <p className="text-xs font-semibold text-foreground font-body">₹{p.amount.toLocaleString()} · {p.method}</p>
                   <p className="text-[10px] text-muted-foreground font-body">{new Date(p.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })} · Instalment {p.installment_no}/{p.total_installments}</p>
                 </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${p.status === "paid" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>{p.status}</span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${p.status === "paid" ? "bg-accent text-accent-foreground" : p.status === "pending" ? "bg-warm text-warm-foreground" : "bg-muted text-muted-foreground"}`}>{p.status}</span>
+                  {p.status === "pending" && (
+                    <button onClick={async () => {
+                      await supabase.from("payments").update({ status: "paid" }).eq("id", p.id);
+                      toast.success("Marked as paid");
+                      fetchData();
+                    }} className="text-[9px] px-2 py-0.5 rounded-full bg-accent text-accent-foreground font-semibold hover:opacity-80">
+                      ✓ Pay
+                    </button>
+                  )}
+                  <button onClick={() => setShowInvoice(p)} className="text-[9px] px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-semibold hover:opacity-80">
+                    <FileText className="w-3 h-3 inline" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -192,12 +234,295 @@ export default function StudentProfile() {
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
                   a.status === "present" ? "bg-accent text-accent-foreground" :
                   a.status === "late" ? "bg-secondary text-secondary-foreground" :
+                  a.status === "absent" ? "bg-destructive/10 text-destructive" :
                   "bg-muted text-muted-foreground"
                 }`}>{a.status}</span>
               </div>
             ))}
           </div>
         )}
+      </div>
+
+      {/* Record Fee Modal */}
+      {showFeeForm && (
+        <RecordFeeModal
+          student={student}
+          existingPayments={payments}
+          onClose={() => setShowFeeForm(false)}
+          onSaved={() => { setShowFeeForm(false); fetchData(); }}
+        />
+      )}
+
+      {/* Invoice Modal */}
+      {showInvoice && (
+        <InvoiceModal
+          payment={showInvoice}
+          student={student}
+          allPayments={payments}
+          onClose={() => setShowInvoice(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function RecordFeeModal({ student, existingPayments, onClose, onSaved }: {
+  student: any; existingPayments: any[]; onClose: () => void; onSaved: () => void;
+}) {
+  const [paymentType, setPaymentType] = useState<PaymentType>("installment");
+  const [form, setForm] = useState({
+    amount: "", method: "UPI", installment_no: 1, total_installments: 1,
+    notes: "", status: "paid", date: new Date().toISOString().slice(0, 10),
+  });
+
+  const totalPaid = existingPayments.filter(p => p.status === "paid").reduce((a: number, p: any) => a + p.amount, 0);
+  const balanceDue = Math.max(0, student.fee_amount - totalPaid);
+  const paidInstallments = existingPayments.filter(p => p.status === "paid").length;
+
+  const plan = student.payment_plan || "50-30-20 Installment";
+  const splits = PLAN_SPLITS[plan] || PLAN_SPLITS["50-30-20 Installment"];
+
+  const getSchedule = () => {
+    return splits.map((pct, i) => {
+      const d = new Date(form.date);
+      d.setMonth(d.getMonth() + i);
+      return { no: i + 1, date: d.toISOString().slice(0, 10), amount: Math.round(student.fee_amount * pct), pct: Math.round(pct * 100) };
+    });
+  };
+
+  useEffect(() => {
+    if (paymentType === "full") {
+      setForm(f => ({ ...f, amount: String(balanceDue), installment_no: 1, total_installments: 1, status: "paid" }));
+    } else if (paymentType === "installment") {
+      const schedule = getSchedule();
+      const nextIdx = Math.min(paidInstallments, schedule.length - 1);
+      setForm(f => ({
+        ...f,
+        amount: schedule[nextIdx] ? String(schedule[nextIdx].amount) : String(balanceDue),
+        installment_no: nextIdx + 1,
+        total_installments: schedule.length,
+        status: "paid",
+      }));
+    } else {
+      setForm(f => ({ ...f, status: "paid", installment_no: 1, total_installments: 1 }));
+    }
+  }, [paymentType]);
+
+  const handleSubmit = async () => {
+    if (!form.amount || Number(form.amount) <= 0) { toast.error("Enter a valid amount"); return; }
+    const { error } = await supabase.from("payments").insert({
+      student_id: student.id, amount: Number(form.amount), method: form.method,
+      date: form.date, installment_no: form.installment_no, total_installments: form.total_installments,
+      notes: form.notes || null, status: form.status,
+    });
+    if (error) { toast.error("Failed: " + error.message); return; }
+
+    // Auto-create pending future installments if first installment
+    if (paymentType === "installment" && form.installment_no === 1 && paidInstallments === 0) {
+      const schedule = getSchedule();
+      for (let i = 1; i < schedule.length; i++) {
+        await supabase.from("payments").insert({
+          student_id: student.id, amount: schedule[i].amount, method: form.method,
+          date: schedule[i].date, installment_no: i + 1, total_installments: schedule.length,
+          notes: `Installment ${i + 1} (${schedule[i].pct}%)`, status: "pending",
+        });
+      }
+    }
+
+    toast.success("Payment recorded!");
+    onSaved();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card rounded-t-3xl md:rounded-2xl w-full md:max-w-md p-6 shadow-active animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-lg font-bold text-foreground">Record Fee — {student.name}</h2>
+          <button onClick={onClose}><X className="w-5 h-5 text-muted-foreground" /></button>
+        </div>
+
+        {/* Balance Summary */}
+        <div className="bg-muted rounded-xl p-3 mb-4">
+          <div className="grid grid-cols-3 gap-2 text-[10px] font-body">
+            <div><span className="text-muted-foreground">Total:</span> <span className="font-semibold text-foreground">₹{student.fee_amount.toLocaleString()}</span></div>
+            <div><span className="text-muted-foreground">Paid:</span> <span className="font-semibold text-accent-foreground">₹{totalPaid.toLocaleString()}</span></div>
+            <div><span className="text-muted-foreground">Due:</span> <span className="font-semibold text-destructive">₹{balanceDue.toLocaleString()}</span></div>
+          </div>
+        </div>
+
+        {/* Payment Type */}
+        <div className="flex gap-1.5 mb-4">
+          {([
+            { key: "full" as PaymentType, label: "💰 Full Balance" },
+            { key: "installment" as PaymentType, label: "📅 Installment" },
+            { key: "part" as PaymentType, label: "½ Custom" },
+          ]).map(t => (
+            <button key={t.key} onClick={() => setPaymentType(t.key)}
+              className={cn("px-3 py-1.5 rounded-xl text-xs font-semibold font-body border transition-all",
+                paymentType === t.key ? "border-primary bg-primary-soft text-primary" : "border-border text-muted-foreground")}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground font-body">Amount (₹)*</label>
+              <input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
+                className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground font-body">Date</label>
+              <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
+                className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground font-body">Method</label>
+              <select value={form.method} onChange={e => setForm(p => ({ ...p, method: e.target.value }))}
+                className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
+                {["UPI", "Cash", "Bank Transfer", "Cheque"].map(m => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground font-body">Status</label>
+              <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
+                className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
+                {["paid", "pending"].map(s => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Installment Schedule Preview */}
+          {paymentType === "installment" && (
+            <div className="bg-accent/30 rounded-xl p-3 border border-accent">
+              <p className="text-xs font-bold text-foreground font-body mb-2">📅 Schedule ({plan})</p>
+              {getSchedule().map(s => (
+                <div key={s.no} className={cn("flex justify-between text-[11px] font-body py-1 border-b border-border/50 last:border-0",
+                  s.no <= paidInstallments ? "opacity-50 line-through" : "")}>
+                  <span className="text-foreground font-semibold">#{s.no} — {s.pct}%</span>
+                  <span className="font-bold text-primary">₹{s.amount.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground font-body">Notes</label>
+            <input type="text" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+              placeholder="e.g. Installment 2, Renewal..."
+              className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-5">
+          <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-border text-sm font-semibold font-body text-muted-foreground hover:bg-muted">Cancel</button>
+          <button onClick={handleSubmit} className="flex-1 py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold font-body hover:opacity-90">
+            Record ₹{form.amount ? Number(form.amount).toLocaleString() : "0"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InvoiceModal({ payment, student, allPayments, onClose }: { payment: any; student: any; allPayments: any[]; onClose: () => void }) {
+  const totalPaid = allPayments.filter(p => p.status === "paid").reduce((a: number, p: any) => a + p.amount, 0);
+  const totalFee = student.fee_amount || 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card rounded-2xl w-full max-w-md shadow-active animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-6 print:p-4" id="invoice-area">
+          <div className="flex items-center justify-between mb-6 border-b-2 border-primary pb-4">
+            <div className="flex items-center gap-3">
+              <img src={logoImg} alt="Art Neelam" className="w-14 h-auto" />
+              <div>
+                <h2 className="font-display font-bold text-foreground text-lg">Art Neelam Academy</h2>
+                <p className="text-[10px] text-muted-foreground font-body">Drawing & Painting Classes</p>
+                <p className="text-[9px] text-muted-foreground font-body">📞 +91 9920546217</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-display font-bold text-foreground text-base">INVOICE</p>
+              <p className="text-[10px] text-muted-foreground font-body">#{payment.id.slice(0, 8).toUpperCase()}</p>
+              <p className="text-[10px] text-muted-foreground font-body mt-1">
+                {new Date(payment.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-5">
+            <div>
+              <p className="text-[10px] text-muted-foreground font-body font-semibold uppercase tracking-wide">Billed To</p>
+              <p className="text-sm font-bold text-foreground font-body">{student.name}</p>
+              <p className="text-[10px] text-muted-foreground font-body">{student.roll_number}</p>
+              <p className="text-[10px] text-muted-foreground font-body">{student.course} Course</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-muted-foreground font-body font-semibold uppercase tracking-wide">Payment Info</p>
+              <p className="text-xs font-semibold text-foreground font-body">{payment.method}</p>
+              <p className="text-[10px] text-muted-foreground font-body">Installment {payment.installment_no}/{payment.total_installments}</p>
+            </div>
+          </div>
+
+          <div className="border border-border rounded-xl overflow-hidden mb-4">
+            <div className="gradient-primary text-primary-foreground px-4 py-2 flex justify-between text-xs font-body font-semibold">
+              <span>Description</span><span>Amount</span>
+            </div>
+            <div className="bg-card">
+              <div className="flex justify-between px-4 py-2.5 text-sm font-body border-b border-border">
+                <span className="text-foreground font-semibold">{student.course} Course — Total Fee</span>
+                <span className="font-semibold text-foreground">₹{totalFee.toLocaleString()}</span>
+              </div>
+              {allPayments.map(sp => (
+                <div key={sp.id} className={cn("flex justify-between px-4 py-2 text-xs font-body border-b border-border/50", sp.id === payment.id ? "bg-primary-soft" : "")}>
+                  <span className="text-muted-foreground">
+                    {sp.notes || `Installment ${sp.installment_no}`}
+                    <span className={`ml-2 text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${sp.status === "paid" ? "bg-accent text-accent-foreground" : "bg-warm text-warm-foreground"}`}>
+                      {sp.status}
+                    </span>
+                  </span>
+                  <span className="font-semibold text-foreground">₹{sp.amount.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-muted rounded-xl p-4 mb-4 space-y-1.5">
+            <div className="flex justify-between text-xs font-body">
+              <span className="text-muted-foreground">Total Fee</span>
+              <span className="font-semibold text-foreground">₹{totalFee.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-xs font-body">
+              <span className="text-muted-foreground">Total Paid</span>
+              <span className="font-semibold text-accent-foreground">₹{totalPaid.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-xs font-body border-t border-border pt-1.5">
+              <span className="font-semibold text-foreground">Pending Balance</span>
+              <span className="font-bold text-destructive">₹{(totalFee - totalPaid).toLocaleString()}</span>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center gradient-primary text-primary-foreground rounded-xl px-4 py-3">
+            <span className="text-sm font-semibold font-body">This Payment</span>
+            <span className="font-display font-bold text-xl">₹{payment.amount.toLocaleString()}</span>
+          </div>
+
+          <div className="mt-4 text-center">
+            <p className="text-[9px] text-muted-foreground font-body">Thank you for choosing Art Neelam Academy</p>
+            <p className="text-[9px] text-muted-foreground/50 font-body mt-1">This is a computer-generated invoice</p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 p-4 border-t border-border print:hidden">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold text-muted-foreground font-body">Close</button>
+          <button onClick={() => window.print()} className="flex-1 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold font-body flex items-center justify-center gap-2">
+            <Printer className="w-4 h-4" /> Print
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -252,11 +577,7 @@ function SendCredentialsButton({ student }: { student: any }) {
       openWhatsApp(
         parentPhone,
         templates.parentCredentials(
-          data.parent_name,
-          data.student_name,
-          data.email,
-          data.password,
-          portalUrl
+          data.parent_name, data.student_name, data.email, data.password, portalUrl
         )
       );
     } catch (err: any) {

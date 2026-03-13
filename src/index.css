@@ -138,7 +138,9 @@
   #certificate-print-area,
   #certificate-print-area *,
   #invoice-area,
-  #invoice-area * {
+  #invoice-area *,
+  #id-card-print-area,
+  #id-card-print-area * {
     visibility: visible !important;
   }
 
@@ -161,6 +163,15 @@
     left: 0 !important;
     top: 0 !important;
     width: 100% !important;
+    box-shadow: none !important;
+  }
+
+  #id-card-print-area {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 86mm !important;
     box-shadow: none !important;
   }
 
