@@ -229,3 +229,73 @@ function DetailRow({ label, value, sub }: { label: string; value: string; sub?: 
     </div>
   );
 }
+
+function SendCredentialsButton({ student }: { student: any }) {
+  const [loading, setLoading] = useState(false);
+  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
+
+  const handleCreate = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-parent-account", {
+        body: { student_id: student.id },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      setCredentials({ email: data.email, password: data.password });
+      toast.success("Parent account created!");
+
+      // Auto-open WhatsApp with credentials
+      const parentPhone = student.father_contact || student.mother_contact || student.whatsapp;
+      const portalUrl = `${window.location.origin}/auth`;
+      openWhatsApp(
+        parentPhone,
+        templates.parentCredentials(
+          data.parent_name,
+          data.student_name,
+          data.email,
+          data.password,
+          portalUrl
+        )
+      );
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create parent account");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (credentials) {
+    return (
+      <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent text-accent-foreground text-[10px] font-semibold">
+        <KeyRound className="w-3 h-3" />
+        <span>{credentials.email}</span>
+        <button
+          onClick={() => {
+            const parentPhone = student.father_contact || student.mother_contact || student.whatsapp;
+            const portalUrl = `${window.location.origin}/auth`;
+            openWhatsApp(parentPhone, templates.parentCredentials(
+              student.father_name || student.mother_name || "Parent",
+              student.name, credentials.email, credentials.password, portalUrl
+            ));
+          }}
+          className="ml-1 underline"
+        >
+          Resend
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={handleCreate}
+      disabled={loading}
+      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-semibold hover:opacity-80 disabled:opacity-50"
+    >
+      {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <KeyRound className="w-3 h-3" />}
+      {student.parent_account_created ? "Resend Credentials" : "Send Parent Login"}
+    </button>
+  );
+}
