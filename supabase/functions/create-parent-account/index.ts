@@ -5,22 +5,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Generate a 4-word password from common words
-const WORDS = [
-  "art", "blue", "sky", "sun", "star", "rose", "lily", "moon", "wave", "tree",
-  "bird", "fish", "rain", "snow", "fire", "wind", "leaf", "rock", "sand", "pine",
-  "gold", "ruby", "jade", "opal", "iris", "fern", "dawn", "dusk", "glow", "mist",
-  "clay", "silk", "mint", "sage", "plum", "lime", "teal", "dune", "peak", "glen",
-  "cove", "vale", "dell", "pond", "lake", "ford", "hill", "dale", "moor", "cape",
-];
+// Generate a 4-character alphanumeric password
+const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function generatePassword(): string {
-  const picked: string[] = [];
+  let pass = "";
   for (let i = 0; i < 4; i++) {
-    const idx = Math.floor(Math.random() * WORDS.length);
-    picked.push(WORDS[idx]);
+    pass += CHARS[Math.floor(Math.random() * CHARS.length)];
   }
-  return picked.join("-");
+  return pass;
 }
 
 Deno.serve(async (req) => {
