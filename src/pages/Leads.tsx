@@ -124,6 +124,10 @@ export default function Leads() {
           <p className="text-sm text-muted-foreground font-body">{filteredBySource.length} leads</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setShowEnquiryLink(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-warm text-warm-foreground rounded-xl text-xs font-semibold hover:opacity-90 transition-all">
+            <Link2 className="w-4 h-4" /> Enquiry Form
+          </button>
           <button onClick={runAIScoring} disabled={scoring}
             className="flex items-center gap-1.5 px-3 py-2 bg-secondary text-secondary-foreground rounded-xl text-xs font-semibold hover:opacity-90 transition-all disabled:opacity-50">
             {scoring ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} AI Score
