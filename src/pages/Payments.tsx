@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, TrendingUp, X, Send, FileText, RefreshCw, ArrowUpCircle, Trash2, Printer } from "lucide-react";
+import { Plus, Search, TrendingUp, X, Send, FileText, Trash2, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,9 @@ type StudentOption = {
 };
 
 type PaymentType = "full" | "part" | "installment" | "renewal" | "upgrade";
+
+// Fixed 50/30/20 installment structure
+const INSTALLMENT_SPLITS = [0.5, 0.3, 0.2];
 
 export default function Payments() {
   const [payments, setPayments] = useState<PaymentRow[]>([]);
@@ -66,26 +69,25 @@ export default function Payments() {
 
   const selectedStudent = students.find(s => s.id === form.student_id);
 
-  // Auto-calc installment details
+  // 50/30/20 installment schedule
   const getInstallmentSchedule = () => {
-    if (!selectedStudent || paymentType !== "installment") return [];
-    const plan = selectedStudent.payment_plan || "Monthly";
+    if (!selectedStudent) return [];
     const fee = selectedStudent.fee_amount;
-    let intervals = 1;
-    if (plan === "Monthly") intervals = 12;
-    else if (plan === "Quarterly") intervals = 4;
-    else if (plan === "Yearly") intervals = 1;
-    const perInstallment = Math.ceil(fee / intervals);
-    const schedule = [];
     const start = new Date(form.date);
-    for (let i = 0; i < intervals; i++) {
+    return INSTALLMENT_SPLITS.map((pct, i) => {
       const d = new Date(start);
-      if (plan === "Monthly") d.setMonth(d.getMonth() + i);
-      else if (plan === "Quarterly") d.setMonth(d.getMonth() + i * 3);
-      else d.setFullYear(d.getFullYear() + i);
-      schedule.push({ no: i + 1, date: d.toISOString().slice(0, 10), amount: perInstallment });
-    }
-    return schedule;
+      d.setMonth(d.getMonth() + i);
+      return { no: i + 1, date: d.toISOString().slice(0, 10), amount: Math.round(fee * pct), pct: Math.round(pct * 100) };
+    });
+  };
+
+  // Get student's payment summary
+  const getStudentPaymentSummary = () => {
+    if (!selectedStudent) return { paid: 0, pending: 0, total: 0 };
+    const studentPayments = payments.filter(p => p.student_id === selectedStudent.id);
+    const paid = studentPayments.filter(p => p.status === "paid").reduce((a, p) => a + p.amount, 0);
+    const pending = studentPayments.filter(p => p.status === "pending").reduce((a, p) => a + p.amount, 0);
+    return { paid, pending, total: selectedStudent.fee_amount };
   };
 
   useEffect(() => {
@@ -94,11 +96,12 @@ export default function Payments() {
     } else if (paymentType === "installment" && selectedStudent) {
       const schedule = getInstallmentSchedule();
       const existingCount = payments.filter(p => p.student_id === form.student_id && p.status === "paid").length;
+      const nextIdx = Math.min(existingCount, schedule.length - 1);
       setForm(f => ({
         ...f,
-        amount: schedule.length > 0 ? String(schedule[0].amount) : "",
-        installment_no: existingCount + 1,
-        total_installments: schedule.length,
+        amount: schedule.length > 0 ? String(schedule[nextIdx]?.amount || "") : "",
+        installment_no: nextIdx + 1,
+        total_installments: 3,
         status: "paid",
       }));
     } else if (paymentType === "part") {
@@ -117,17 +120,15 @@ export default function Payments() {
     });
     if (error) { toast.error("Failed: " + error.message); return; }
 
-    // Auto-create pending future installments
-    if (paymentType === "installment") {
+    // Auto-create pending future installments for 50/30/20 structure
+    if (paymentType === "installment" && form.installment_no === 1) {
       const schedule = getInstallmentSchedule();
       for (let i = 1; i < schedule.length; i++) {
-        if (form.installment_no <= i) {
-          await supabase.from("payments").insert({
-            student_id: form.student_id, amount: schedule[i].amount, method: form.method,
-            date: schedule[i].date, installment_no: i + 1, total_installments: schedule.length,
-            notes: `Installment ${i + 1}`, status: "pending",
-          });
-        }
+        await supabase.from("payments").insert({
+          student_id: form.student_id, amount: schedule[i].amount, method: form.method,
+          date: schedule[i].date, installment_no: i + 1, total_installments: 3,
+          notes: `Installment ${i + 1} (${schedule[i].pct}%)`, status: "pending",
+        });
       }
     }
 
@@ -135,6 +136,12 @@ export default function Payments() {
     setShowForm(false);
     setForm(f => ({ ...f, amount: "", notes: "" }));
     fetchData();
+  };
+
+  const markAsPaid = async (id: string) => {
+    const { error } = await supabase.from("payments").update({ status: "paid" }).eq("id", id);
+    if (error) toast.error("Failed to update");
+    else { toast.success("Marked as paid"); fetchData(); }
   };
 
   const deletePayment = async (id: string) => {
@@ -150,9 +157,9 @@ export default function Payments() {
     openWhatsApp(parentPhone, templates.feeReminder(p.students!.name, p.amount, p.date));
   };
 
-  const printInvoice = () => { window.print(); };
-
   if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+
+  const summary = getStudentPaymentSummary();
 
   return (
     <div className="p-4 md:p-6 space-y-4">
@@ -206,12 +213,20 @@ export default function Payments() {
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${statusColors[p.status] || ""}`}>{p.status}</span>
               </div>
             </div>
-            <div className="flex gap-1.5 mt-2">
-              {(p.status === "pending" || p.status === "partial") && p.students && (
-                <button onClick={() => sendReminderToParent(p)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-warm text-warm-foreground text-[10px] font-semibold hover:opacity-80">
-                  <Send className="w-3 h-3" /> Remind
-                </button>
+            <div className="flex gap-1.5 mt-2 flex-wrap">
+              {(p.status === "pending" || p.status === "partial") && (
+                <>
+                  <button onClick={() => markAsPaid(p.id)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-accent text-accent-foreground text-[10px] font-semibold hover:opacity-80">
+                    ✓ Mark Paid
+                  </button>
+                  {p.students && (
+                    <button onClick={() => sendReminderToParent(p)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-warm text-warm-foreground text-[10px] font-semibold hover:opacity-80">
+                      <Send className="w-3 h-3" /> Remind
+                    </button>
+                  )}
+                </>
               )}
               <button onClick={() => setShowInvoice(p)}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-[10px] font-semibold hover:opacity-80">
@@ -241,7 +256,7 @@ export default function Payments() {
               {([
                 { key: "full", label: "Full", icon: "💰" },
                 { key: "part", label: "Part", icon: "½" },
-                { key: "installment", label: "Installment", icon: "📅" },
+                { key: "installment", label: "3-Part (50/30/20)", icon: "📅" },
                 { key: "renewal", label: "Renewal", icon: "🔄" },
                 { key: "upgrade", label: "Upgrade", icon: "⬆️" },
               ] as { key: PaymentType; label: string; icon: string }[]).map(t => (
@@ -261,6 +276,19 @@ export default function Payments() {
                   {students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.roll_number}) - ₹{s.fee_amount}</option>)}
                 </select>
               </div>
+
+              {/* Student Payment Summary */}
+              {selectedStudent && (
+                <div className="bg-muted rounded-xl p-3">
+                  <p className="text-xs font-semibold text-foreground font-body mb-1">Fee Summary for {selectedStudent.name}</p>
+                  <div className="grid grid-cols-3 gap-2 text-[10px] font-body">
+                    <div><span className="text-muted-foreground">Total:</span> <span className="font-semibold text-foreground">₹{summary.total.toLocaleString()}</span></div>
+                    <div><span className="text-muted-foreground">Paid:</span> <span className="font-semibold text-accent-foreground">₹{summary.paid.toLocaleString()}</span></div>
+                    <div><span className="text-muted-foreground">Pending:</span> <span className="font-semibold text-destructive">₹{(summary.total - summary.paid).toLocaleString()}</span></div>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground font-body">Amount (₹)*</label>
@@ -289,29 +317,16 @@ export default function Payments() {
                   </select>
                 </div>
               </div>
-              {paymentType === "installment" && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground font-body">Installment #</label>
-                    <input type="number" value={form.installment_no} onChange={e => setForm(p => ({ ...p, installment_no: Number(e.target.value) }))}
-                      className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground font-body">Total Installments</label>
-                    <input type="number" value={form.total_installments} onChange={e => setForm(p => ({ ...p, total_installments: Number(e.target.value) }))}
-                      className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                  </div>
-                </div>
-              )}
 
-              {/* Installment Schedule Preview */}
-              {paymentType === "installment" && getInstallmentSchedule().length > 0 && (
-                <div className="bg-muted rounded-xl p-3">
-                  <p className="text-xs font-semibold text-foreground font-body mb-2">Payment Schedule</p>
+              {/* 50/30/20 Installment Schedule Preview */}
+              {paymentType === "installment" && selectedStudent && (
+                <div className="bg-accent/50 rounded-xl p-3 border border-accent">
+                  <p className="text-xs font-bold text-foreground font-body mb-2">📅 3-Part Payment Schedule (50/30/20)</p>
+                  <p className="text-[10px] text-muted-foreground font-body mb-2">Total Fee: ₹{selectedStudent.fee_amount.toLocaleString()}</p>
                   {getInstallmentSchedule().map(s => (
-                    <div key={s.no} className="flex justify-between text-[10px] font-body text-muted-foreground py-0.5">
-                      <span>#{s.no} — {new Date(s.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}</span>
-                      <span className="font-semibold text-foreground">₹{s.amount.toLocaleString()}</span>
+                    <div key={s.no} className="flex justify-between text-[11px] font-body py-1 border-b border-border/50 last:border-0">
+                      <span className="text-foreground font-semibold">#{s.no} — {s.pct}% — {new Date(s.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}</span>
+                      <span className="font-bold text-primary">₹{s.amount.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
@@ -344,75 +359,120 @@ export default function Payments() {
         </div>
       )}
 
-      {/* Invoice Modal */}
-      {showInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={() => setShowInvoice(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-active animate-fade-in" onClick={e => e.stopPropagation()}>
-            <div className="p-6 print:p-4" id="invoice-area">
-              {/* Invoice Header */}
-              <div className="flex items-center justify-between mb-6 border-b border-border pb-4">
-                <div className="flex items-center gap-3">
-                  <img src={logoImg} alt="Art Neelam" className="w-16 h-auto" />
-                  <div>
-                    <h2 className="font-display font-bold text-[#1e3a5f] text-lg">Art Neelam Academy</h2>
-                    <p className="text-[10px] text-[#666] font-body">Drawing & Painting Classes</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-display font-bold text-[#1e3a5f] text-sm">INVOICE</p>
-                  <p className="text-[10px] text-[#999] font-body">#{showInvoice.id.slice(0, 8).toUpperCase()}</p>
-                </div>
-              </div>
+      {/* Professional Invoice Modal */}
+      {showInvoice && <InvoiceModal payment={showInvoice} allPayments={payments} onClose={() => setShowInvoice(null)} />}
+    </div>
+  );
+}
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <p className="text-[10px] text-[#999] font-body">Billed To</p>
-                  <p className="text-sm font-semibold text-[#1e3a5f] font-body">{showInvoice.students?.name}</p>
-                  <p className="text-[10px] text-[#666] font-body">{showInvoice.students?.roll_number}</p>
-                  <p className="text-[10px] text-[#666] font-body">{showInvoice.students?.course} Course</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] text-[#999] font-body">Date</p>
-                  <p className="text-sm font-semibold text-[#1e3a5f] font-body">{new Date(showInvoice.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
-                  <p className="text-[10px] text-[#666] font-body mt-1">Method: {showInvoice.method}</p>
-                </div>
-              </div>
+function InvoiceModal({ payment, allPayments, onClose }: { payment: PaymentRow; allPayments: PaymentRow[]; onClose: () => void }) {
+  const studentPayments = allPayments.filter(p => p.student_id === payment.student_id);
+  const totalPaid = studentPayments.filter(p => p.status === "paid").reduce((a, p) => a + p.amount, 0);
+  const totalPending = studentPayments.filter(p => p.status === "pending").reduce((a, p) => a + p.amount, 0);
+  const totalFee = payment.students?.fee_amount || 0;
 
-              <div className="bg-[#fdf8f0] rounded-xl p-4 mb-4">
-                <div className="flex justify-between text-xs font-body text-[#666] border-b border-[#e5d5c0] pb-2 mb-2">
-                  <span>Description</span>
-                  <span>Amount</span>
-                </div>
-                <div className="flex justify-between text-sm font-body">
-                  <span className="text-[#1e3a5f] font-semibold">
-                    {showInvoice.students?.course} Course Fee
-                    {showInvoice.total_installments && showInvoice.total_installments > 1 && ` (Inst. ${showInvoice.installment_no}/${showInvoice.total_installments})`}
-                  </span>
-                  <span className="font-display font-bold text-[#1e3a5f]">₹{showInvoice.amount.toLocaleString()}</span>
-                </div>
-                {showInvoice.notes && <p className="text-[10px] text-[#999] font-body mt-1">{showInvoice.notes}</p>}
-              </div>
-
-              <div className="flex justify-between items-center bg-[#1e3a5f] text-white rounded-xl px-4 py-3">
-                <span className="text-sm font-semibold font-body">Total Paid</span>
-                <span className="font-display font-bold text-xl">₹{showInvoice.amount.toLocaleString()}</span>
-              </div>
-
-              <div className="mt-4 text-center">
-                <p className="text-[9px] text-[#999] font-body">Thank you for choosing Art Neelam Academy</p>
-                <p className="text-[10px] font-semibold text-[#1e3a5f] font-body">📞 +91 9920546217</p>
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-active animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-6 print:p-4" id="invoice-area">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6 border-b-2 border-[#1e3a5f] pb-4">
+            <div className="flex items-center gap-3">
+              <img src={logoImg} alt="Art Neelam" className="w-14 h-auto" />
+              <div>
+                <h2 className="font-display font-bold text-[#1e3a5f] text-lg">Art Neelam Academy</h2>
+                <p className="text-[10px] text-[#666] font-body">Drawing & Painting Classes</p>
+                <p className="text-[9px] text-[#999] font-body">📞 +91 9920546217</p>
               </div>
             </div>
-
-            <div className="flex gap-3 p-4 border-t border-border print:hidden">
-              <button onClick={() => setShowInvoice(null)} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold text-muted-foreground font-body">Close</button>
-              <button onClick={printInvoice} className="flex-1 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold font-body flex items-center justify-center gap-2">
-                <Printer className="w-4 h-4" /> Print
-              </button>
+            <div className="text-right">
+              <p className="font-display font-bold text-[#1e3a5f] text-base">INVOICE</p>
+              <p className="text-[10px] text-[#999] font-body">#{payment.id.slice(0, 8).toUpperCase()}</p>
+              <p className="text-[10px] text-[#666] font-body mt-1">
+                {new Date(payment.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+              </p>
             </div>
           </div>
+
+          {/* Student Info */}
+          <div className="grid grid-cols-2 gap-4 mb-5">
+            <div>
+              <p className="text-[10px] text-[#999] font-body font-semibold uppercase tracking-wide">Billed To</p>
+              <p className="text-sm font-bold text-[#1e3a5f] font-body">{payment.students?.name}</p>
+              <p className="text-[10px] text-[#666] font-body">{payment.students?.roll_number}</p>
+              <p className="text-[10px] text-[#666] font-body">{payment.students?.course} Course</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-[#999] font-body font-semibold uppercase tracking-wide">Payment Info</p>
+              <p className="text-xs font-semibold text-[#1e3a5f] font-body">{payment.method}</p>
+              <p className="text-[10px] text-[#666] font-body">
+                Installment {payment.installment_no}/{payment.total_installments}
+              </p>
+            </div>
+          </div>
+
+          {/* Fee Structure Table */}
+          <div className="border border-[#e5d5c0] rounded-xl overflow-hidden mb-4">
+            <div className="bg-[#1e3a5f] text-white px-4 py-2 flex justify-between text-xs font-body font-semibold">
+              <span>Description</span>
+              <span>Amount</span>
+            </div>
+            <div className="bg-[#fdf8f0]">
+              <div className="flex justify-between px-4 py-2.5 text-sm font-body border-b border-[#e5d5c0]">
+                <span className="text-[#1e3a5f] font-semibold">{payment.students?.course} Course — Total Fee</span>
+                <span className="font-semibold text-[#1e3a5f]">₹{totalFee.toLocaleString()}</span>
+              </div>
+
+              {/* Show all installments for this student */}
+              {studentPayments.map(sp => (
+                <div key={sp.id} className={`flex justify-between px-4 py-2 text-xs font-body border-b border-[#e5d5c0]/50 ${sp.id === payment.id ? "bg-accent/30" : ""}`}>
+                  <span className="text-[#666]">
+                    {sp.notes || `Installment ${sp.installment_no}`}
+                    <span className={`ml-2 text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${sp.status === "paid" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                      {sp.status}
+                    </span>
+                  </span>
+                  <span className="font-semibold text-[#1e3a5f]">₹{sp.amount.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div className="bg-[#fdf8f0] rounded-xl p-4 mb-4 space-y-1.5">
+            <div className="flex justify-between text-xs font-body">
+              <span className="text-[#666]">Total Fee</span>
+              <span className="font-semibold text-[#1e3a5f]">₹{totalFee.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-xs font-body">
+              <span className="text-[#666]">Total Paid</span>
+              <span className="font-semibold text-green-700">₹{totalPaid.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-xs font-body border-t border-[#e5d5c0] pt-1.5">
+              <span className="font-semibold text-[#1e3a5f]">Pending Balance</span>
+              <span className="font-bold text-[#c9a227]">₹{(totalFee - totalPaid).toLocaleString()}</span>
+            </div>
+          </div>
+
+          {/* Current Payment */}
+          <div className="flex justify-between items-center bg-[#1e3a5f] text-white rounded-xl px-4 py-3">
+            <span className="text-sm font-semibold font-body">This Payment</span>
+            <span className="font-display font-bold text-xl">₹{payment.amount.toLocaleString()}</span>
+          </div>
+
+          <div className="mt-4 text-center">
+            <p className="text-[9px] text-[#999] font-body">Thank you for choosing Art Neelam Academy</p>
+            <p className="text-[9px] text-[#ccc] font-body mt-1">This is a computer-generated invoice</p>
+          </div>
         </div>
-      )}
+
+        <div className="flex gap-3 p-4 border-t border-border print:hidden">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold text-muted-foreground font-body">Close</button>
+          <button onClick={() => window.print()} className="flex-1 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold font-body flex items-center justify-center gap-2">
+            <Printer className="w-4 h-4" /> Print
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

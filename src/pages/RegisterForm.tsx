@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Palette, CheckCircle } from "lucide-react";
+import { Palette, CheckCircle, QrCode, FileText, X } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 const BATCHES = [
   "Professional (10:00 AM - 11:30 AM)",
@@ -19,22 +20,23 @@ export default function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [phoneError, setPhoneError] = useState("");
+  const [showQR, setShowQR] = useState(false);
+  const [showPDF, setShowPDF] = useState(false);
+  const [rollNumber, setRollNumber] = useState("");
   const [form, setForm] = useState({
     name: "", dob: "", schoolName: "", address: "", emergencyContact: "",
     fatherName: "", fatherContact: "", motherName: "", motherContact: "",
     guardianName: "", whatsapp: "", email: "", course: "Basic",
-    batch: "Professional (10:00 AM - 11:30 AM)", agreedTerms: false,
+    batch: BATCHES[2], agreedTerms: false,
   });
 
+  const registrationUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/register`
+    : "";
+
   const validatePhone = (phone: string) => {
-    if (!phone) {
-      setPhoneError("WhatsApp number is required");
-      return false;
-    }
-    if (!isValidIndianPhone(phone)) {
-      setPhoneError("Enter a valid 10-digit Indian number (starting with 6-9)");
-      return false;
-    }
+    if (!phone) { setPhoneError("WhatsApp number is required"); return false; }
+    if (!isValidIndianPhone(phone)) { setPhoneError("Enter a valid 10-digit Indian number (starting with 6-9)"); return false; }
     setPhoneError("");
     return true;
   };
@@ -64,13 +66,25 @@ export default function RegisterForm() {
           phone: form.whatsapp,
           email: form.email || null,
           course: form.course,
+          batch: form.batch,
           notes,
+          dob: form.dob || null,
+          school_name: form.schoolName || null,
+          address: form.address || null,
+          emergency_contact: form.emergencyContact || null,
+          father_name: form.fatherName || null,
+          father_contact: form.fatherContact || null,
+          mother_name: form.motherName || null,
+          mother_contact: form.motherContact || null,
+          guardian_name: form.guardianName || null,
+          terms_accepted: form.agreedTerms,
         },
       });
 
       if (fnError) throw new Error(fnError.message || "Submission failed");
       if (data?.error) throw new Error(data.error);
 
+      setRollNumber(data?.roll_number || "");
       setSubmitted(true);
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
@@ -86,11 +100,17 @@ export default function RegisterForm() {
           <div className="w-20 h-20 rounded-full bg-accent flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-10 h-10 text-accent-vivid" />
           </div>
-          <h2 className="font-display text-2xl font-bold text-foreground">Registration Submitted!</h2>
+          <h2 className="font-display text-2xl font-bold text-foreground">Registration Successful!</h2>
           <p className="text-muted-foreground font-body mt-2">Thank you for registering with Art Neelam Academy. We'll contact you on WhatsApp to confirm your enrollment.</p>
           <div className="mt-6 p-4 bg-card rounded-2xl border border-border shadow-card text-left">
             <p className="text-xs font-semibold text-muted-foreground font-body">Student Name</p>
             <p className="text-base font-bold font-body text-foreground">{form.name}</p>
+            {rollNumber && (
+              <>
+                <p className="text-xs font-semibold text-muted-foreground font-body mt-2">Roll Number</p>
+                <p className="text-base font-bold font-body text-primary">{rollNumber}</p>
+              </>
+            )}
             <p className="text-xs font-semibold text-muted-foreground font-body mt-2">Course</p>
             <p className="text-sm font-body text-foreground">{form.course} • {form.batch}</p>
           </div>
@@ -102,14 +122,19 @@ export default function RegisterForm() {
   return (
     <div className="min-h-screen bg-background">
       <div className="gradient-primary px-5 py-6 pt-safe">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
-            <Palette className="w-5 h-5 text-primary-foreground" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
+              <Palette className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="font-display font-bold text-primary-foreground text-lg">Art Neelam Academy</h1>
+              <p className="text-xs text-primary-foreground/80 font-body">Student Registration Form</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-display font-bold text-primary-foreground text-lg">Art Neelam Academy</h1>
-            <p className="text-xs text-primary-foreground/80 font-body">Student Registration Form</p>
-          </div>
+          <button onClick={() => setShowQR(true)} className="p-2 rounded-xl bg-primary-foreground/20 hover:bg-primary-foreground/30 transition-colors" title="Show QR Code">
+            <QrCode className="w-5 h-5 text-primary-foreground" />
+          </button>
         </div>
       </div>
 
@@ -130,16 +155,10 @@ export default function RegisterForm() {
           <Field label="Guardian Name (Optional)" type="text" value={form.guardianName} onChange={v => setForm(p => ({ ...p, guardianName: v }))} placeholder="If applicable" />
           <div>
             <label className="text-xs font-semibold text-muted-foreground font-body">WhatsApp Number*</label>
-            <input
-              type="tel"
-              value={form.whatsapp}
-              onChange={e => {
-                setForm(p => ({ ...p, whatsapp: e.target.value }));
-                if (phoneError) validatePhone(e.target.value);
-              }}
+            <input type="tel" value={form.whatsapp}
+              onChange={e => { setForm(p => ({ ...p, whatsapp: e.target.value })); if (phoneError) validatePhone(e.target.value); }}
               onBlur={() => form.whatsapp && validatePhone(form.whatsapp)}
-              placeholder="e.g. 9920546217"
-              required
+              placeholder="e.g. 9920546217" required
               className={`w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30 ${phoneError ? "border-destructive" : "border-border"}`}
             />
             {phoneError && <p className="text-xs text-destructive font-body mt-1">{phoneError}</p>}
@@ -168,8 +187,15 @@ export default function RegisterForm() {
           </div>
         </FormSection>
 
+        {/* Terms & Conditions with PDF preview */}
         <div className="bg-muted rounded-2xl p-4">
-          <h3 className="font-display font-bold text-foreground text-sm mb-2">Terms & Conditions</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-display font-bold text-foreground text-sm">Terms & Conditions</h3>
+            <button type="button" onClick={() => setShowPDF(true)}
+              className="flex items-center gap-1 text-xs text-primary font-semibold hover:underline">
+              <FileText className="w-3.5 h-3.5" /> View Full PDF
+            </button>
+          </div>
           <div className="text-[11px] text-muted-foreground font-body space-y-1 mb-3 max-h-24 overflow-y-auto">
             <p>• Fees once paid are non-refundable.</p>
             <p>• Students are expected to maintain 75% attendance.</p>
@@ -191,6 +217,43 @@ export default function RegisterForm() {
           {loading ? "Submitting..." : "Submit Registration"}
         </button>
       </form>
+
+      {/* QR Code Modal */}
+      {showQR && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={() => setShowQR(false)}>
+          <div className="bg-card rounded-2xl p-6 shadow-active animate-fade-in text-center max-w-xs mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display font-bold text-foreground text-lg">Share Registration</h3>
+              <button onClick={() => setShowQR(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
+            </div>
+            <div className="bg-white p-4 rounded-xl inline-block mb-4">
+              <QRCodeSVG value={registrationUrl} size={200} level="H"
+                imageSettings={{ src: "", height: 0, width: 0, excavate: false }} />
+            </div>
+            <p className="text-xs text-muted-foreground font-body mb-2">Scan to open registration form</p>
+            <div className="bg-muted rounded-xl px-3 py-2">
+              <p className="text-[10px] text-foreground font-body break-all">{registrationUrl}</p>
+            </div>
+            <button onClick={() => { navigator.clipboard.writeText(registrationUrl); }}
+              className="mt-3 w-full py-2 rounded-xl bg-primary-soft text-primary text-xs font-semibold hover:opacity-80">
+              Copy Link
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Preview Modal */}
+      {showPDF && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={() => setShowPDF(false)}>
+          <div className="bg-card rounded-2xl w-full max-w-2xl h-[80vh] shadow-active animate-fade-in flex flex-col mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="font-display font-bold text-foreground">Terms & Conditions</h2>
+              <button onClick={() => setShowPDF(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
+            </div>
+            <iframe src="/artneelam_terms_conditions.pdf" className="flex-1 w-full rounded-b-2xl" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

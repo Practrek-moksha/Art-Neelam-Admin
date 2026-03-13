@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BATCHES } from "@/data/dummy";
-import { Search, Plus, ChevronRight, X } from "lucide-react";
+import { Search, Plus, ChevronRight, X, Trash2 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,16 +13,9 @@ const courseColors: Record<string, string> = {
 };
 
 type Student = {
-  id: string;
-  roll_number: string;
-  name: string;
-  course: string;
-  batch: string;
-  status: string;
-  validity_end: string | null;
-  fee_amount: number;
-  whatsapp: string;
-  dob: string | null;
+  id: string; roll_number: string; name: string; course: string;
+  batch: string; status: string; validity_end: string | null;
+  fee_amount: number; whatsapp: string; dob: string | null;
 };
 
 export default function Students() {
@@ -45,7 +38,6 @@ export default function Students() {
 
   const [form, setForm] = useState(defaultForm);
 
-  // Handle prefill from lead conversion
   useEffect(() => {
     const state = location.state as any;
     if (state?.prefill) {
@@ -57,16 +49,13 @@ export default function Students() {
         course: state.prefill.course || "Basic",
       }));
       setShowForm(true);
-      // Clear state so it doesn't re-trigger
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
-  // Auto-calculate validity end when start or sessions change
   useEffect(() => {
     if (form.validity_start && form.total_sessions) {
       const start = new Date(form.validity_start);
-      // Assume ~4 sessions/week, so weeks = sessions/4, add buffer
       const weeks = Math.ceil(form.total_sessions / 4);
       const end = new Date(start);
       end.setDate(end.getDate() + weeks * 7);
@@ -90,7 +79,6 @@ export default function Students() {
     return matchSearch && matchBatch;
   });
 
-  // Calculate final fee
   const discountVal = form.discount_percent > 0
     ? Math.round(form.fee_amount * form.discount_percent / 100)
     : form.discount_amount;
@@ -114,10 +102,16 @@ export default function Students() {
       total_sessions: Number(form.total_sessions), fee_amount: finalFee,
       payment_plan: form.payment_plan,
       discount_amount: discountVal, discount_percent: form.discount_percent,
-      roll_number: "TEMP", // trigger will auto-generate
+      roll_number: "TEMP",
     });
-    if (error) { toast.error("Failed to add student: " + error.message); console.error(error); }
-    else {
+    if (error) {
+      if (error.code === "23505") {
+        toast.error("A student with this WhatsApp number already exists");
+      } else {
+        toast.error("Failed to add student: " + error.message);
+      }
+      console.error(error);
+    } else {
       toast.success("Student registered!");
       setShowForm(false);
       setForm(defaultForm);
@@ -125,11 +119,21 @@ export default function Students() {
     }
   };
 
+  const deleteStudent = async (id: string, name: string) => {
+    if (!confirm(`Delete student "${name}"? This will also remove their attendance and payment records.`)) return;
+    // Delete related records first
+    await supabase.from("attendance").delete().eq("student_id", id);
+    await supabase.from("payments").delete().eq("student_id", id);
+    await supabase.from("student_parent_link").delete().eq("student_id", id);
+    const { error } = await supabase.from("students").delete().eq("id", id);
+    if (error) toast.error("Failed to delete student");
+    else { toast.success("Student deleted"); setStudents(prev => prev.filter(s => s.id !== id)); }
+  };
+
   if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Students</h1>
@@ -146,7 +150,6 @@ export default function Students() {
         </div>
       </div>
 
-      {/* Search & Filter */}
       <div className="flex gap-2">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -155,7 +158,6 @@ export default function Students() {
         </div>
       </div>
 
-      {/* Batch Pills */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
         {["All", ...BATCHES].map(b => (
           <button key={b} onClick={() => setBatchFilter(b)}
@@ -166,33 +168,42 @@ export default function Students() {
         ))}
       </div>
 
-      {/* Student Cards */}
       <div className="space-y-2">
         {filtered.map(s => (
-          <Link key={s.id} to={`/students/${s.id}`} className="block bg-card rounded-2xl shadow-card border border-border p-4 hover:border-primary/30 hover:shadow-active transition-all">
+          <div key={s.id} className="bg-card rounded-2xl shadow-card border border-border p-4 hover:border-primary/30 hover:shadow-active transition-all">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-primary-soft flex items-center justify-center font-display font-bold text-primary text-lg flex-shrink-0">
-                {s.name[0]}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-bold text-foreground font-body text-sm">{s.name}</p>
-                  <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{s.roll_number}</span>
+              <Link to={`/students/${s.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-12 h-12 rounded-xl bg-primary-soft flex items-center justify-center font-display font-bold text-primary text-lg flex-shrink-0">
+                  {s.name[0]}
                 </div>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${courseColors[s.course] || ""}`}>{s.course}</span>
-                  <span className="text-[10px] text-muted-foreground font-body">{s.batch.split(" (")[0]}</span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${s.status === "active" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>
-                    {s.status}
-                  </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-bold text-foreground font-body text-sm">{s.name}</p>
+                    <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{s.roll_number}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${courseColors[s.course] || ""}`}>{s.course}</span>
+                    <span className="text-[10px] text-muted-foreground font-body">{s.batch.split(" (")[0]}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${s.status === "active" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>
+                      {s.status}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground font-body mt-0.5">
+                    {s.validity_end ? `Valid: ${new Date(s.validity_end).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}` : ""} • ₹{s.fee_amount.toLocaleString()}
+                  </p>
                 </div>
-                <p className="text-[10px] text-muted-foreground font-body mt-0.5">
-                  {s.validity_end ? `Valid: ${new Date(s.validity_end).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}` : ""} • ₹{s.fee_amount.toLocaleString()}
-                </p>
+              </Link>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button onClick={(e) => { e.preventDefault(); deleteStudent(s.id, s.name); }}
+                  className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Delete student">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <Link to={`/students/${s.id}`}>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </Link>
               </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             </div>
-          </Link>
+          </div>
         ))}
         {filtered.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">No students found. Add your first student!</p>}
       </div>
@@ -239,7 +250,7 @@ export default function Students() {
                 </div>
                 <FormField label="Enrollment Date" type="date" value={form.enrollment_date} onChange={v => setForm(p => ({ ...p, enrollment_date: v }))} />
                 <FormField label="Validity Start" type="date" value={form.validity_start} onChange={v => setForm(p => ({ ...p, validity_start: v }))} />
-                <FormField label="Validity End (auto-calculated)" type="date" value={form.validity_end} onChange={v => setForm(p => ({ ...p, validity_end: v }))} />
+                <FormField label="Validity End (auto)" type="date" value={form.validity_end} onChange={v => setForm(p => ({ ...p, validity_end: v }))} />
                 <FormField label="Total Sessions" type="number" value={String(form.total_sessions)} onChange={v => setForm(p => ({ ...p, total_sessions: Number(v) }))} />
               </Section>
               <Section title="Fees & Discount">
@@ -255,7 +266,6 @@ export default function Students() {
                   <FormField label="Discount %" type="number" value={String(form.discount_percent)} onChange={v => setForm(p => ({ ...p, discount_percent: Number(v), discount_amount: 0 }))} />
                   <FormField label="Discount ₹" type="number" value={String(form.discount_amount)} onChange={v => setForm(p => ({ ...p, discount_amount: Number(v), discount_percent: 0 }))} />
                 </div>
-                {/* Fee Summary */}
                 <div className="bg-accent rounded-xl p-3 space-y-1">
                   <div className="flex justify-between text-xs font-body">
                     <span className="text-muted-foreground">Total Fee</span>
@@ -273,9 +283,6 @@ export default function Students() {
                   </div>
                 </div>
               </Section>
-              <div className="p-3 bg-accent rounded-xl">
-                <p className="text-xs text-accent-foreground font-body">✓ By submitting, student/guardian agrees to Art Neelam Academy's terms & conditions.</p>
-              </div>
             </div>
             <div className="sticky bottom-0 bg-card px-6 py-4 border-t border-border flex gap-3">
               <button onClick={() => { setShowForm(false); setForm(defaultForm); }} className="flex-1 py-3 rounded-xl border border-border text-sm font-semibold font-body text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
