@@ -21,7 +21,7 @@ export default function IDCard() {
     (async () => {
       const { data, error } = await supabase.from("students")
         .select("id, name, roll_number, course, batch, whatsapp, photo_url, validity_end, father_contact, mother_contact")
-        .eq("status", "active").order("name");
+        .in("status", ["active", "new"]).order("name");
       if (error) toast.error("Failed to load students");
       const list = data || [];
       setStudents(list);
