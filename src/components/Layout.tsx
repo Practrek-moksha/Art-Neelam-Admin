@@ -55,7 +55,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-hide">
-          {navItems.map(({ path, icon: Icon, label }) => (
+          {(role === "parent" ? [] : navItems).map(({ path, icon: Icon, label }) => (
             <Link key={path} to={path}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
