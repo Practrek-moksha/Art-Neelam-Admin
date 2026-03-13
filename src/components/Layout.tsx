@@ -55,7 +55,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-hide">
-          {navItems.map(({ path, icon: Icon, label }) => (
+          {(role === "parent" ? [] : navItems).map(({ path, icon: Icon, label }) => (
             <Link key={path} to={path}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
@@ -68,11 +68,19 @@ export default function Layout({ children }: LayoutProps) {
         </nav>
 
         <div className="p-4 border-t border-border">
-          <Link to="/parent-portal"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-            <Users className="w-4 h-4" />
-            Parent Portal
-          </Link>
+          {role === "parent" ? (
+            <Link to="/parent-portal"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
+              <Users className="w-4 h-4" />
+              Parent Portal
+            </Link>
+          ) : (
+            <Link to="/parent-portal"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
+              <Users className="w-4 h-4" />
+              Parent Portal
+            </Link>
+          )}
           <button onClick={signOut} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all mt-1">
             <LogOut className="w-4 h-4" />
             Logout
@@ -111,7 +119,7 @@ export default function Layout({ children }: LayoutProps) {
               </button>
             </div>
             <nav className="p-4 space-y-1">
-              {[...navItems, { path: "/parent-portal", icon: Users, label: "Parent Portal" }].map(({ path, icon: Icon, label }) => (
+              {(role === "parent" ? [{ path: "/parent-portal", icon: Users, label: "Parent Portal" }] : [...navItems, { path: "/parent-portal", icon: Users, label: "Parent Portal" }]).map(({ path, icon: Icon, label }) => (
                 <Link key={path} to={path} onClick={() => setSidebarOpen(false)}
                   className={cn(
                     "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all",
@@ -134,7 +142,7 @@ export default function Layout({ children }: LayoutProps) {
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border pb-safe">
         <div className="flex items-center justify-around px-2 pt-2 pb-1">
-          {bottomNav.map(({ path, icon: Icon, label }) => (
+          {(role === "parent" ? [{ path: "/parent-portal", icon: Users, label: "Portal" }] : bottomNav).map(({ path, icon: Icon, label }) => (
             <Link key={path} to={path}
               className={cn("flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all",
                 isActive(path) ? "text-primary" : "text-muted-foreground")}>
