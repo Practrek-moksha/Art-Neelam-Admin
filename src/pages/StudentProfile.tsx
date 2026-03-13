@@ -206,6 +206,7 @@ export default function StudentProfile() {
                     <button onClick={async () => {
                       await supabase.from("payments").update({ status: "paid" }).eq("id", p.id);
                       toast.success("Marked as paid");
+                      await checkAndGraduate();
                       fetchData();
                     }} className="text-[9px] px-2 py-0.5 rounded-full bg-accent text-accent-foreground font-semibold hover:opacity-80">
                       ✓ Pay
