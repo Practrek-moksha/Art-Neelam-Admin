@@ -27,8 +27,12 @@ type StudentOption = {
 
 type PaymentType = "full" | "part" | "installment" | "renewal" | "upgrade";
 
-// Fixed 50/30/20 installment structure
-const INSTALLMENT_SPLITS = [0.5, 0.3, 0.2];
+// Payment plan installment structures
+const PLAN_SPLITS: Record<string, number[]> = {
+  "Full Payment": [1.0],
+  "50-30-20 Installment": [0.5, 0.3, 0.2],
+  "50-50 Custom": [0.5, 0.5],
+};
 
 export default function Payments() {
   const [payments, setPayments] = useState<PaymentRow[]>([]);
