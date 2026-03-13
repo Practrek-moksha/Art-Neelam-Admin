@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Phone, MessageCircle, Plus, ChevronRight, Sparkles, Loader2, UserPlus, Filter, Globe, PenLine, ThumbsDown, Trash2 } from "lucide-react";
+import { Phone, MessageCircle, Plus, ChevronRight, Sparkles, Loader2, UserPlus, Filter, Globe, PenLine, ThumbsDown, Trash2, Link2, QrCode, X, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
