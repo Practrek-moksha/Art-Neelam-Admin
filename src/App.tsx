@@ -63,6 +63,7 @@ const AppRoutes = () => {
     <Routes>
       {/* Public */}
       <Route path="/register" element={<RegisterForm />} />
+      <Route path="/enquiry" element={<EnquiryForm />} />
       <Route path="/auth" element={user ? <Navigate to={defaultRoute} replace /> : <Auth />} />
 
       {/* Admin routes */}
