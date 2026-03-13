@@ -22,6 +22,7 @@ interface StudentData {
   dob: string | null;
   enrollment_date: string | null;
   validity_end: string | null;
+  fee_amount: number;
 }
 
 export default function ParentPortal() {
