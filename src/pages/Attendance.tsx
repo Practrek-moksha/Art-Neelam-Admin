@@ -32,7 +32,7 @@ export default function Attendance() {
   useEffect(() => {
     (async () => {
       const [sRes, aRes] = await Promise.all([
-        supabase.from("students").select("id, name, roll_number, batch, whatsapp, total_sessions").eq("status", "active"),
+        supabase.from("students").select("id, name, roll_number, batch, whatsapp, total_sessions").in("status", ["active", "new"]),
         supabase.from("attendance").select("*"),
       ]);
       if (sRes.error) toast.error("Failed to load students");

@@ -19,7 +19,7 @@ export default function Certificate() {
   useEffect(() => {
     (async () => {
       const [sRes, aRes, pRes] = await Promise.all([
-        supabase.from("students").select("id, name, roll_number, course, total_sessions, fee_amount").eq("status", "active"),
+        supabase.from("students").select("id, name, roll_number, course, total_sessions, fee_amount").in("status", ["active", "new"]),
         supabase.from("attendance").select("student_id, status"),
         supabase.from("payments").select("student_id, amount, status"),
       ]);
