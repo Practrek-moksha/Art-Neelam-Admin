@@ -106,59 +106,59 @@ export default function Certificate() {
       {student && (
         <div className="flex justify-center">
           <div ref={certRef} id="certificate-print-area"
-            className="w-full max-w-sm rounded-lg overflow-hidden shadow-active print:shadow-none print:max-w-none print:w-[210mm] print:min-h-[297mm] print:rounded-none relative cert-printable"
+            className="cert-printable w-full max-w-sm rounded-lg overflow-hidden shadow-active print:shadow-none print:max-w-none print:rounded-none relative"
             style={{
               aspectRatio: "1/1.4",
               background: "linear-gradient(180deg, #fce4ec 0%, #f8bbd0 20%, #fce4ec 50%, #fff0f3 100%)",
               border: "3px solid #c9a227",
             }}>
-            <div className="absolute inset-3 border-2 border-[#c9a227]/30 rounded-sm" />
-            <div className="absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 border-[#c9a227]/50 rounded-tl-sm" />
-            <div className="absolute top-2 right-2 w-6 h-6 border-t-2 border-r-2 border-[#c9a227]/50 rounded-tr-sm" />
-            <div className="absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 border-[#c9a227]/50 rounded-bl-sm" />
-            <div className="absolute bottom-2 right-2 w-6 h-6 border-b-2 border-r-2 border-[#c9a227]/50 rounded-br-sm" />
+            <div className="cert-printable absolute inset-3 border-2 rounded-sm" style={{ borderColor: "rgba(201,162,39,0.3)" }} />
+            <div className="cert-printable absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 rounded-tl-sm" style={{ borderColor: "rgba(201,162,39,0.5)" }} />
+            <div className="cert-printable absolute top-2 right-2 w-6 h-6 border-t-2 border-r-2 rounded-tr-sm" style={{ borderColor: "rgba(201,162,39,0.5)" }} />
+            <div className="cert-printable absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 rounded-bl-sm" style={{ borderColor: "rgba(201,162,39,0.5)" }} />
+            <div className="cert-printable absolute bottom-2 right-2 w-6 h-6 border-b-2 border-r-2 rounded-br-sm" style={{ borderColor: "rgba(201,162,39,0.5)" }} />
 
-            <div className="relative h-full flex flex-col items-center justify-between px-6 py-8 text-center">
+            <div className="cert-printable relative h-full flex flex-col items-center justify-between px-6 py-8 print:px-16 print:py-20 text-center">
               <div>
-                <h2 className="font-display text-lg md:text-xl font-bold text-[#1e3a5f] tracking-wider">CERTIFICATE</h2>
-                <p className="text-[10px] text-[#1e3a5f]/70 font-body tracking-[0.3em] mt-0.5">OF COMPLETION</p>
+                <h2 className="font-display text-lg md:text-xl print:text-4xl font-bold tracking-wider" style={{ color: "#1e3a5f" }}>CERTIFICATE</h2>
+                <p className="text-[10px] print:text-sm font-body tracking-[0.3em] mt-0.5" style={{ color: "rgba(30,58,95,0.7)" }}>OF COMPLETION</p>
               </div>
 
-              <img src={logoImg} alt="Art Neelam" className="w-28 h-auto my-2" />
+              <img src={logoImg} alt="Art Neelam" className="w-28 print:w-48 h-auto my-2 print:my-6" />
 
-              <p className="text-[9px] text-[#8b4560] font-body italic max-w-xs leading-relaxed">
+              <p className="text-[9px] print:text-sm font-body italic max-w-xs print:max-w-md leading-relaxed" style={{ color: "#8b4560" }}>
                 "Creativity takes courage, and every masterpiece begins with a single stroke."
               </p>
 
-              <div className="space-y-2">
-                <p className="text-xs text-[#333] font-body">This is to certify that</p>
-                <h3 className="font-display text-xl font-bold text-[#1e3a5f] border-b-2 border-[#c9a227] pb-1 px-6">
+              <div className="space-y-2 print:space-y-4">
+                <p className="text-xs print:text-base font-body" style={{ color: "#333" }}>This is to certify that</p>
+                <h3 className="font-display text-xl print:text-3xl font-bold pb-1 px-6 print:px-12" style={{ color: "#1e3a5f", borderBottom: "2px solid #c9a227" }}>
                   {student.name}
                 </h3>
-                <p className="text-xs text-[#333] font-body">has successfully completed the</p>
-                <p className="font-display text-base font-bold text-[#c9a227]">{student.course} Course</p>
-                <p className="text-[10px] text-[#666] font-body max-w-xs leading-relaxed">
+                <p className="text-xs print:text-base font-body" style={{ color: "#333" }}>has successfully completed the</p>
+                <p className="font-display text-base print:text-2xl font-bold" style={{ color: "#c9a227" }}>{student.course} Course</p>
+                <p className="text-[10px] print:text-sm font-body max-w-xs print:max-w-md leading-relaxed" style={{ color: "#666" }}>
                   at Art Neelam Academy with dedication and artistic excellence.
                   We wish continued success in all future creative endeavors.
                 </p>
               </div>
 
-              <div className="flex items-end justify-between w-full mt-4">
+              <div className="flex items-end justify-between w-full mt-4 print:mt-10">
                 <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center"
+                  <div className="w-14 h-14 print:w-20 print:h-20 rounded-full flex items-center justify-center cert-printable"
                     style={{ background: "radial-gradient(circle, #d4af37 0%, #c9a227 70%, #b8941f 100%)", boxShadow: "0 2px 10px rgba(201,162,39,0.4)" }}>
-                    <Award className="w-7 h-7 text-white" />
+                    <Award className="w-7 h-7 print:w-10 print:h-10" style={{ color: "#ffffff" }} />
                   </div>
-                  <p className="text-[7px] text-[#999] font-body mt-1">{today}</p>
+                  <p className="text-[7px] print:text-xs font-body mt-1" style={{ color: "#999" }}>{today}</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-display text-xs font-bold text-[#1e3a5f] italic">Artist Neelam Suthar</p>
-                  <div className="w-28 border-t border-[#ccc]" />
-                  <p className="text-[9px] text-[#999] font-body mt-0.5">Proprietor, Art Neelam Academy</p>
+                  <p className="font-display text-xs print:text-base font-bold italic" style={{ color: "#1e3a5f" }}>Artist Neelam Suthar</p>
+                  <div className="w-28 print:w-40" style={{ borderTop: "1px solid #ccc" }} />
+                  <p className="text-[9px] print:text-xs font-body mt-0.5" style={{ color: "#999" }}>Proprietor, Art Neelam Academy</p>
                 </div>
               </div>
 
-              <p className="text-[7px] text-[#ccc] font-body">{certId}</p>
+              <p className="text-[7px] print:text-[10px] font-body" style={{ color: "#ccc" }}>{certId}</p>
 
               {!isEligible && (
                 <div className="absolute inset-0 bg-white/80 flex items-center justify-center print:hidden">
