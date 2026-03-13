@@ -40,6 +40,7 @@ export default function Students() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [batchFilter, setBatchFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [showForm, setShowForm] = useState(false);
   const location = useLocation();
 
