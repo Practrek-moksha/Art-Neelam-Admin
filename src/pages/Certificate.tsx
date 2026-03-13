@@ -102,11 +102,11 @@ export default function Certificate() {
         })}
       </div>
 
-      {/* Vertical Certificate — print-only shows just this */}
+      {/* Certificate — only this shows on print */}
       {student && (
         <div className="flex justify-center">
-          <div ref={certRef}
-            className="certificate-print w-full max-w-sm rounded-lg overflow-hidden shadow-active print:shadow-none print:max-w-none print:w-[210mm] print:min-h-[297mm] relative"
+          <div ref={certRef} id="certificate-print-area"
+            className="w-full max-w-sm rounded-lg overflow-hidden shadow-active print:shadow-none print:max-w-none print:w-[210mm] print:min-h-[297mm] print:rounded-none relative"
             style={{
               aspectRatio: "1/1.4",
               background: "linear-gradient(180deg, #fce4ec 0%, #f8bbd0 20%, #fce4ec 50%, #fff0f3 100%)",
@@ -161,7 +161,7 @@ export default function Certificate() {
               <p className="text-[7px] text-[#ccc] font-body">{certId}</p>
 
               {!isEligible && (
-                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                <div className="absolute inset-0 bg-white/80 flex items-center justify-center print:hidden">
                   <div className="bg-warm rounded-2xl px-6 py-4 text-center shadow-lg">
                     <p className="font-display font-bold text-foreground text-lg mb-1">Not Yet Eligible</p>
                     <p className="text-xs text-muted-foreground font-body">
