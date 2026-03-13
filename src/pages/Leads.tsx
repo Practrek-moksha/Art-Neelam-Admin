@@ -344,6 +344,54 @@ export default function Leads() {
           </div>
         </div>
       )}
+
+      {/* Enquiry Form Link Modal */}
+      {showEnquiryLink && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={() => setShowEnquiryLink(false)}>
+          <div className="bg-card rounded-2xl p-6 shadow-active animate-fade-in max-w-sm mx-4 w-full" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display font-bold text-foreground text-lg">Public Enquiry Form</h3>
+              <button onClick={() => setShowEnquiryLink(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
+            </div>
+            <p className="text-xs text-muted-foreground font-body mb-4">
+              Share this link on your website, social media, or print the QR code. Enquiries will automatically appear as new leads here.
+            </p>
+
+            <div className="bg-muted rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 mb-4">
+              <p className="text-xs text-foreground font-body break-all flex-1">{enquiryUrl}</p>
+              <button onClick={() => { navigator.clipboard.writeText(enquiryUrl); toast.success("Link copied!"); }}
+                className="p-1.5 rounded-lg bg-primary-soft text-primary hover:opacity-80 flex-shrink-0">
+                <Copy className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-muted rounded-xl p-4 text-center mb-4">
+              <p className="text-xs font-semibold text-muted-foreground font-body mb-3">QR Code — Print & Display</p>
+              <div className="inline-block bg-white p-3 rounded-xl">
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(enquiryUrl)}`} alt="QR Code" className="w-[180px] h-[180px]" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[10px] font-semibold text-muted-foreground font-body">Embed on your website:</p>
+              <div className="bg-muted rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+                <code className="text-[10px] text-foreground font-mono break-all flex-1">
+                  {`<a href="${enquiryUrl}">Enquire Now</a>`}
+                </code>
+                <button onClick={() => { navigator.clipboard.writeText(`<a href="${enquiryUrl}" target="_blank" style="background:#e8697a;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Enquire Now</a>`); toast.success("HTML copied!"); }}
+                  className="p-1.5 rounded-lg bg-primary-soft text-primary hover:opacity-80 flex-shrink-0">
+                  <Copy className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <a href="/enquiry" target="_blank" rel="noopener"
+              className="mt-4 w-full py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold font-body hover:opacity-90 flex items-center justify-center gap-2">
+              <Globe className="w-4 h-4" /> Preview Enquiry Form
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
