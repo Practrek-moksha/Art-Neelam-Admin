@@ -25,7 +25,12 @@ export default function IDCard() {
       if (error) toast.error("Failed to load students");
       const list = data || [];
       setStudents(list);
-      if (list.length > 0) setSelectedId(list[0].id);
+
+      // Check URL params for pre-selection
+      const params = new URLSearchParams(window.location.search);
+      const preId = params.get("id");
+      if (preId && list.find(s => s.id === preId)) setSelectedId(preId);
+      else if (list.length > 0) setSelectedId(list[0].id);
       setLoading(false);
     })();
   }, []);
@@ -40,7 +45,7 @@ export default function IDCard() {
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between print:hidden">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">ID Card Generator</h1>
           <p className="text-sm text-muted-foreground font-body">Generate & print student ID cards</p>
@@ -51,13 +56,13 @@ export default function IDCard() {
         </button>
       </div>
 
-      <div className="relative">
+      <div className="relative print:hidden">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search student..."
           className="w-full pl-9 pr-3 py-2.5 bg-card border border-border rounded-xl text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
       </div>
 
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 print:hidden">
         {filtered.map(s => (
           <button key={s.id} onClick={() => setSelectedId(s.id)}
             className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold font-body transition-all border ${
@@ -69,68 +74,60 @@ export default function IDCard() {
         ))}
       </div>
 
-      {/* Paint Palette Shaped ID Card */}
+      {/* ID Card - Clean Professional Design */}
       {student && (
         <div className="flex justify-center">
-          <div ref={cardRef} className="relative print:shadow-none" style={{ width: "340px" }}>
-            {/* Palette shape using CSS */}
-            <svg viewBox="0 0 340 220" className="absolute inset-0 w-full h-full" style={{ filter: "drop-shadow(0 4px 20px rgba(0,0,0,0.15))" }}>
-              <defs>
-                <linearGradient id="paletteBg" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#1e3a5f" />
-                  <stop offset="100%" stopColor="#2c5282" />
-                </linearGradient>
-              </defs>
-              <path d="M50,10 Q10,10 10,50 L10,170 Q10,210 50,210 L280,210 Q320,210 325,180 Q335,140 310,120 Q290,105 295,80 Q300,55 325,50 Q335,30 310,15 Q300,10 280,10 Z"
-                fill="url(#paletteBg)" />
-              {/* Paint dots */}
-              <circle cx="305" cy="55" r="12" fill="#f48fb1" opacity="0.9" />
-              <circle cx="315" cy="95" r="10" fill="#81c784" opacity="0.9" />
-              <circle cx="305" cy="135" r="11" fill="#ffb74d" opacity="0.9" />
-              <circle cx="310" cy="170" r="9" fill="#64b5f6" opacity="0.9" />
-              {/* Thumb hole */}
-              <ellipse cx="60" cy="175" rx="22" ry="18" fill="#fdf8f0" />
-            </svg>
-
-            <div className="relative z-10 p-5 pr-16" style={{ minHeight: "220px" }}>
-              {/* Header */}
-              <div className="flex items-center gap-2 mb-3 ml-3">
-                <img src={logoImg} alt="Art Neelam" className="w-10 h-auto rounded-lg" />
+          <div ref={cardRef} id="id-card-print-area" className="print:shadow-none" style={{ width: "360px" }}>
+            {/* Front of Card */}
+            <div className="rounded-2xl overflow-hidden shadow-active print:shadow-none print:rounded-none"
+              style={{ background: "linear-gradient(135deg, hsl(220 40% 20%), hsl(220 45% 30%))" }}>
+              
+              {/* Top Banner with Logo */}
+              <div className="px-5 pt-5 pb-3 flex items-center gap-3">
+                <img src={logoImg} alt="Art Neelam" className="w-16 h-16 rounded-xl object-contain" />
                 <div>
-                  <h2 className="font-display font-bold text-white text-xs leading-tight">Art Neelam Academy</h2>
-                  <p className="text-[9px] text-white/70 font-body">Student Identity Card</p>
+                  <h2 className="font-display font-bold text-lg leading-tight" style={{ color: "#d4af37" }}>Art Neelam Academy</h2>
+                  <p className="text-[10px] font-body font-medium tracking-wide" style={{ color: "rgba(255,255,255,0.6)" }}>STUDENT IDENTITY CARD</p>
                 </div>
               </div>
 
+              {/* Accent Line */}
+              <div className="h-1 mx-5" style={{ background: "linear-gradient(90deg, #d4af37, #c9a227, transparent)" }} />
+
               {/* Body */}
-              <div className="flex gap-3 ml-3">
+              <div className="px-5 py-4 flex gap-4">
+                {/* Photo */}
                 <div className="flex-shrink-0">
-                  <div className="w-16 h-20 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center overflow-hidden">
+                  <div className="w-20 h-24 rounded-xl overflow-hidden flex items-center justify-center"
+                    style={{ border: "2px solid rgba(212,175,55,0.5)", background: "rgba(255,255,255,0.08)" }}>
                     {student.photo_url ? (
                       <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="font-display font-bold text-white text-2xl">{student.name[0]}</span>
+                      <span className="font-display font-bold text-3xl" style={{ color: "#d4af37" }}>{student.name[0]}</span>
                     )}
                   </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-display font-bold text-white text-sm leading-tight truncate">{student.name}</h3>
-                  <div className="mt-1.5 space-y-1">
-                    <InfoRow label="ID" value={student.roll_number} highlight />
-                    <InfoRow label="Course" value={student.course} />
-                    <InfoRow label="Batch" value={student.batch.split(" (")[0]} />
-                    <InfoRow label="Phone" value={student.whatsapp} />
-                    <InfoRow label="Parent" value={student.father_contact || student.mother_contact || "—"} />
-                    <InfoRow label="Valid" value={student.validity_end ? new Date(student.validity_end).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }) : "—"} />
+
+                {/* Details */}
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <h3 className="font-display font-bold text-base leading-tight truncate" style={{ color: "#ffffff" }}>{student.name}</h3>
+                  
+                  <div className="space-y-1">
+                    <IDField label="ID" value={student.roll_number} highlight />
+                    <IDField label="Course" value={student.course} />
+                    <IDField label="Batch" value={student.batch.split(" (")[0]} />
+                    <IDField label="Phone" value={student.whatsapp} />
+                    <IDField label="Parent" value={student.father_contact || student.mother_contact || "—"} />
+                    <IDField label="Valid Till" value={student.validity_end ? new Date(student.validity_end).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"} />
                   </div>
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="mt-2 ml-3 mr-8">
-                <div className="flex items-center justify-between px-2 py-1 rounded-lg" style={{ background: "linear-gradient(90deg, #c9a227, #d4af37)" }}>
-                  <span className="text-[8px] text-white font-body font-semibold">artneelam.academy</span>
-                  <span className="text-[8px] text-white font-body font-semibold">{student.roll_number}</span>
+              <div className="px-5 pb-4">
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: "linear-gradient(90deg, #d4af37, #c9a227)" }}>
+                  <span className="text-[9px] font-body font-bold" style={{ color: "hsl(220 40% 20%)" }}>artneelam.academy</span>
+                  <span className="text-[9px] font-body font-bold" style={{ color: "hsl(220 40% 20%)" }}>📞 +91 99205 46217</span>
                 </div>
               </div>
             </div>
@@ -142,7 +139,7 @@ export default function IDCard() {
 
       {/* All Students Grid */}
       {students.length > 0 && (
-        <div>
+        <div className="print:hidden">
           <h3 className="font-display font-bold text-foreground text-base mb-3">All Students</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {filtered.map(s => (
@@ -166,11 +163,11 @@ export default function IDCard() {
   );
 }
 
-function InfoRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function IDField({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[8px] text-white/50 font-body w-10 flex-shrink-0">{label}</span>
-      <span className={`text-[9px] font-semibold font-body ${highlight ? "text-[#d4af37]" : "text-white"}`}>{value}</span>
+    <div className="flex items-center gap-2">
+      <span className="text-[9px] font-body w-12 flex-shrink-0" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
+      <span className={`text-[10px] font-semibold font-body`} style={{ color: highlight ? "#d4af37" : "#ffffff" }}>{value}</span>
     </div>
   );
 }
