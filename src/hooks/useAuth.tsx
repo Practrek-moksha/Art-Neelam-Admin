@@ -32,14 +32,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<"admin" | "parent" | null>(DEMO_MODE ? "admin" : null);
   const [loading, setLoading] = useState(DEMO_MODE ? false : true);
+  const [roleLoading, setRoleLoading] = useState(false);
 
   const fetchRole = async (userId: string) => {
+    setRoleLoading(true);
     const { data } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
       .maybeSingle();
     setRole((data?.role as "admin" | "parent") ?? null);
+    setRoleLoading(false);
   };
 
   useEffect(() => {
@@ -80,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, role, loading, signOut, demoMode: DEMO_MODE }}>
+    <AuthContext.Provider value={{ user, session, role, loading: loading || roleLoading, signOut, demoMode: DEMO_MODE }}>
       {children}
     </AuthContext.Provider>
   );
