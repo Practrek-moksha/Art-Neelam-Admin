@@ -62,31 +62,31 @@ export default function Certificate() {
     window.print();
   };
 
-  const certId = student ? `ANA-CERT-${student.roll_number.replace("ANA-", "")}` : "";
+  const certId = student ? `NAS-CERT-${student.roll_number.replace(/^(NAS|ANA)-/, "")}` : "";
   const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 
   if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="print:hidden flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Certificates</h1>
           <p className="text-sm text-muted-foreground font-body">{eligibleStudents.length} students eligible</p>
         </div>
         <button onClick={handlePrint} disabled={!isEligible}
           className="flex items-center gap-1.5 px-3 py-2 gradient-primary text-primary-foreground rounded-xl text-xs font-semibold shadow-active hover:opacity-90 disabled:opacity-40">
-          <Download className="w-4 h-4" /> Download PDF
+          <Download className="w-4 h-4" /> Print Certificate
         </button>
       </div>
 
-      <div className="relative">
+      <div className="print:hidden relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search student..."
           className="w-full pl-9 pr-3 py-2.5 bg-card border border-border rounded-xl text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
       </div>
 
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+      <div className="print:hidden flex gap-2 overflow-x-auto scrollbar-hide pb-1">
         {filtered.map(s => {
           const eligible = s.sessionsAttended >= s.total_sessions && s.feesPaid;
           return (
@@ -102,39 +102,34 @@ export default function Certificate() {
         })}
       </div>
 
-      {/* Vertical Certificate Preview - Light Pink */}
+      {/* Vertical Certificate — print-only shows just this */}
       {student && (
         <div className="flex justify-center">
-          <div ref={certRef} className="w-full max-w-sm rounded-lg overflow-hidden shadow-active print:shadow-none relative"
+          <div ref={certRef}
+            className="certificate-print w-full max-w-sm rounded-lg overflow-hidden shadow-active print:shadow-none print:max-w-none print:w-[210mm] print:min-h-[297mm] relative"
             style={{
               aspectRatio: "1/1.4",
               background: "linear-gradient(180deg, #fce4ec 0%, #f8bbd0 20%, #fce4ec 50%, #fff0f3 100%)",
               border: "3px solid #c9a227",
             }}>
-            {/* Inner border */}
             <div className="absolute inset-3 border-2 border-[#c9a227]/30 rounded-sm" />
-            {/* Corner flourishes */}
             <div className="absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 border-[#c9a227]/50 rounded-tl-sm" />
             <div className="absolute top-2 right-2 w-6 h-6 border-t-2 border-r-2 border-[#c9a227]/50 rounded-tr-sm" />
             <div className="absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 border-[#c9a227]/50 rounded-bl-sm" />
             <div className="absolute bottom-2 right-2 w-6 h-6 border-b-2 border-r-2 border-[#c9a227]/50 rounded-br-sm" />
 
             <div className="relative h-full flex flex-col items-center justify-between px-6 py-8 text-center">
-              {/* Title */}
               <div>
                 <h2 className="font-display text-lg md:text-xl font-bold text-[#1e3a5f] tracking-wider">CERTIFICATE</h2>
                 <p className="text-[10px] text-[#1e3a5f]/70 font-body tracking-[0.3em] mt-0.5">OF COMPLETION</p>
               </div>
 
-              {/* Logo */}
               <img src={logoImg} alt="Art Neelam" className="w-28 h-auto my-2" />
 
-              {/* Quote */}
               <p className="text-[9px] text-[#8b4560] font-body italic max-w-xs leading-relaxed">
                 "Creativity takes courage, and every masterpiece begins with a single stroke."
               </p>
 
-              {/* Body */}
               <div className="space-y-2">
                 <p className="text-xs text-[#333] font-body">This is to certify that</p>
                 <h3 className="font-display text-xl font-bold text-[#1e3a5f] border-b-2 border-[#c9a227] pb-1 px-6">
@@ -143,12 +138,11 @@ export default function Certificate() {
                 <p className="text-xs text-[#333] font-body">has successfully completed the</p>
                 <p className="font-display text-base font-bold text-[#c9a227]">{student.course} Course</p>
                 <p className="text-[10px] text-[#666] font-body max-w-xs leading-relaxed">
-                  at Art Neelam Academy. We applaud her commitment to learning and artistic growth
-                  and wish her continued success in all future creative endeavors.
+                  at Art Neelam Academy with dedication and artistic excellence.
+                  We wish continued success in all future creative endeavors.
                 </p>
               </div>
 
-              {/* Gold seal + Signature */}
               <div className="flex items-end justify-between w-full mt-4">
                 <div className="flex flex-col items-center">
                   <div className="w-14 h-14 rounded-full flex items-center justify-center"
@@ -157,7 +151,6 @@ export default function Certificate() {
                   </div>
                   <p className="text-[7px] text-[#999] font-body mt-1">{today}</p>
                 </div>
-
                 <div className="text-center">
                   <p className="font-display text-xs font-bold text-[#1e3a5f] italic">Artist Neelam Suthar</p>
                   <div className="w-28 border-t border-[#ccc]" />
