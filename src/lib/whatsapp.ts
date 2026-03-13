@@ -18,7 +18,7 @@ export function messageAdmin(message: string) {
 // Pre-built message templates
 export const templates = {
   feeReminder: (studentName: string, amount: number, dueDate?: string) =>
-    `Dear Parent,\n\nThis is a reminder that the fee of ₹${amount.toLocaleString()} for *${studentName}* is due${dueDate ? ` on ${new Date(dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}` : " soon"}.\n\nKindly complete the payment to continue uninterrupted classes at Art Neelam Academy.\n\n– Art Neelam Academy\nContact: +91 9920546217`,
+    `Dear Parent,\n\nThis is a reminder that the fee of ₹${amount.toLocaleString()} for *${studentName}* is due${dueDate ? ` on ${new Date(dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}` : " soon"}.\n\nKindly complete the payment to continue uninterrupted classes at Art Neelam Academy.\n\n– Art Neelam Academy\nContact: +91 9967701108`,
 
   welcomeStudent: (studentName: string, course: string, batch: string) =>
     `Welcome to *Art Neelam Academy*! 🎨\n\nDear Parent,\n\nWe're delighted to have *${studentName}* join our ${course} course (${batch.split(" (")[0]} batch).\n\nLooking forward to a creative journey together! ✨`,
