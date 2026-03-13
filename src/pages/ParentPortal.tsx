@@ -44,7 +44,7 @@ export default function ParentPortal() {
     try {
       if (demoMode) {
         // In demo mode, show all students
-        const { data: studs } = await supabase.from("students").select("id, name, roll_number, course, batch, dob, enrollment_date, validity_end").eq("status", "active");
+        const { data: studs } = await supabase.from("students").select("id, name, roll_number, course, batch, dob, enrollment_date, validity_end, fee_amount").eq("status", "active");
         setStudents(studs || []);
       } else {
         // Real auth: only linked students
