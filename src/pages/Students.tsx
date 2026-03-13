@@ -6,6 +6,22 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const COURSE_FEES: Record<string, { fee: number; sessions: number }> = {
+  Basic: { fee: 9000, sessions: 36 },
+  Advanced: { fee: 15000, sessions: 36 },
+  Professional: { fee: 30000, sessions: 36 },
+};
+
+const PAYMENT_PLANS = ["Full Payment", "50-30-20 Installment", "50-50 Custom"];
+
+const STATUS_OPTIONS = ["active", "new", "graduated", "inactive"];
+const STATUS_COLORS: Record<string, string> = {
+  active: "bg-accent text-accent-foreground",
+  new: "bg-primary-soft text-primary",
+  graduated: "bg-secondary text-secondary-foreground",
+  inactive: "bg-muted text-muted-foreground",
+};
+
 const courseColors: Record<string, string> = {
   Basic: "bg-accent text-accent-foreground",
   Advanced: "bg-secondary text-secondary-foreground",
@@ -16,6 +32,7 @@ type Student = {
   id: string; roll_number: string; name: string; course: string;
   batch: string; status: string; validity_end: string | null;
   fee_amount: number; whatsapp: string; dob: string | null;
+  enrollment_date: string | null;
 };
 
 export default function Students() {
@@ -23,6 +40,7 @@ export default function Students() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [batchFilter, setBatchFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [showForm, setShowForm] = useState(false);
   const location = useLocation();
 
@@ -32,8 +50,8 @@ export default function Students() {
     guardian_name: "", whatsapp: "", email: "", course: "Basic",
     batch: BATCHES[0], enrollment_date: new Date().toISOString().slice(0, 10),
     validity_start: new Date().toISOString().slice(0, 10), validity_end: "",
-    total_sessions: 48, fee_amount: 12000, payment_plan: "Monthly",
-    discount_amount: 0, discount_percent: 0,
+    total_sessions: 36, fee_amount: 9000, payment_plan: "Full Payment",
+    discount_amount: 0, discount_percent: 0, status: "new",
   };
 
   const [form, setForm] = useState(defaultForm);
@@ -64,7 +82,7 @@ export default function Students() {
   }, [form.validity_start, form.total_sessions]);
 
   const fetchStudents = async () => {
-    const { data, error } = await supabase.from("students").select("id, roll_number, name, course, batch, status, validity_end, fee_amount, whatsapp, dob").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("students").select("id, roll_number, name, course, batch, status, validity_end, fee_amount, whatsapp, dob, enrollment_date").order("created_at", { ascending: false });
     if (error) { toast.error("Failed to load students"); console.error(error); }
     else setStudents(data || []);
     setLoading(false);
@@ -102,7 +120,7 @@ export default function Students() {
       total_sessions: Number(form.total_sessions), fee_amount: finalFee,
       payment_plan: form.payment_plan,
       discount_amount: discountVal, discount_percent: form.discount_percent,
-      roll_number: "TEMP",
+      roll_number: "TEMP", status: form.status,
     });
     if (error) {
       if (error.code === "23505") {
@@ -132,6 +150,17 @@ export default function Students() {
 
   if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
+  
+  // Bifurcate students
+  const isNewStudent = (s: Student) => {
+    if (s.status === "new") return true;
+    if (!s.enrollment_date) return false;
+    const enrolled = new Date(s.enrollment_date);
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    return enrolled > threeMonthsAgo;
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between">
@@ -148,6 +177,20 @@ export default function Students() {
             <Plus className="w-4 h-4" /> Add
           </button>
         </div>
+      </div>
+
+      {/* Status Tabs */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+        {["All", "new", "active", "graduated", "inactive"].map(s => {
+          const count = s === "All" ? filtered.length : students.filter(st => s === "new" ? isNewStudent(st) : st.status === s).length;
+          return (
+            <button key={s} onClick={() => setStatusFilter(s)}
+              className={cn("flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold font-body transition-all",
+                statusFilter === s ? "gradient-primary text-primary-foreground shadow-sm" : "bg-card border border-border text-muted-foreground hover:border-primary hover:text-primary")}>
+              {s === "All" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)} ({count})
+            </button>
+          );
+        })}
       </div>
 
       <div className="flex gap-2">
@@ -169,7 +212,11 @@ export default function Students() {
       </div>
 
       <div className="space-y-2">
-        {filtered.map(s => (
+        {filtered.filter(s => {
+          if (statusFilter === "All") return true;
+          if (statusFilter === "new") return isNewStudent(s);
+          return s.status === statusFilter;
+        }).map(s => (
           <div key={s.id} className="bg-card rounded-2xl shadow-card border border-border p-4 hover:border-primary/30 hover:shadow-active transition-all">
             <div className="flex items-center gap-3">
               <Link to={`/students/${s.id}`} className="flex items-center gap-3 flex-1 min-w-0">
@@ -184,9 +231,12 @@ export default function Students() {
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${courseColors[s.course] || ""}`}>{s.course}</span>
                     <span className="text-[10px] text-muted-foreground font-body">{s.batch.split(" (")[0]}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${s.status === "active" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[s.status] || STATUS_COLORS.active}`}>
                       {s.status}
                     </span>
+                    {isNewStudent(s) && s.status !== "new" && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-primary-soft text-primary">new</span>
+                    )}
                   </div>
                   <p className="text-[10px] text-muted-foreground font-body mt-0.5">
                     {s.validity_end ? `Valid: ${new Date(s.validity_end).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}` : ""} • ₹{s.fee_amount.toLocaleString()}
@@ -236,9 +286,15 @@ export default function Students() {
               <Section title="Course & Batch">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground font-body">Course</label>
-                  <select value={form.course} onChange={e => setForm(p => ({ ...p, course: e.target.value }))}
+                  <select value={form.course} onChange={e => {
+                    const c = e.target.value;
+                    const config = COURSE_FEES[c];
+                    setForm(p => ({ ...p, course: c, fee_amount: config?.fee || p.fee_amount, total_sessions: config?.sessions || p.total_sessions }));
+                  }}
                     className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
-                    {["Basic", "Advanced", "Professional"].map(c => <option key={c}>{c}</option>)}
+                    {["Basic", "Advanced", "Professional"].map(c => (
+                      <option key={c} value={c}>{c} — ₹{COURSE_FEES[c].fee.toLocaleString()}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -246,6 +302,13 @@ export default function Students() {
                   <select value={form.batch} onChange={e => setForm(p => ({ ...p, batch: e.target.value }))}
                     className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
                     {BATCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground font-body">Status</label>
+                  <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
+                    className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
+                    {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
                   </select>
                 </div>
                 <FormField label="Enrollment Date" type="date" value={form.enrollment_date} onChange={v => setForm(p => ({ ...p, enrollment_date: v }))} />
@@ -259,7 +322,7 @@ export default function Students() {
                   <label className="text-xs font-semibold text-muted-foreground font-body">Payment Plan</label>
                   <select value={form.payment_plan} onChange={e => setForm(p => ({ ...p, payment_plan: e.target.value }))}
                     className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
-                    {["Monthly", "Quarterly", "Yearly", "Lump Sum", "Custom"].map(p => <option key={p}>{p}</option>)}
+                    {PAYMENT_PLANS.map(p => <option key={p}>{p}</option>)}
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -268,7 +331,7 @@ export default function Students() {
                 </div>
                 <div className="bg-accent rounded-xl p-3 space-y-1">
                   <div className="flex justify-between text-xs font-body">
-                    <span className="text-muted-foreground">Total Fee</span>
+                    <span className="text-muted-foreground">Course Fee</span>
                     <span className="font-semibold text-foreground">₹{form.fee_amount.toLocaleString()}</span>
                   </div>
                   {discountVal > 0 && (
@@ -281,6 +344,22 @@ export default function Students() {
                     <span className="text-foreground">Final Fee</span>
                     <span className="text-primary">₹{finalFee.toLocaleString()}</span>
                   </div>
+                  {/* Installment Preview */}
+                  {form.payment_plan === "50-30-20 Installment" && (
+                    <div className="pt-2 space-y-0.5">
+                      <p className="text-[10px] text-muted-foreground font-body font-semibold">Installment Breakdown:</p>
+                      <div className="flex justify-between text-[10px] font-body"><span>1st (50%)</span><span className="font-semibold">₹{Math.round(finalFee * 0.5).toLocaleString()}</span></div>
+                      <div className="flex justify-between text-[10px] font-body"><span>2nd (30%)</span><span className="font-semibold">₹{Math.round(finalFee * 0.3).toLocaleString()}</span></div>
+                      <div className="flex justify-between text-[10px] font-body"><span>3rd (20%){discountVal > 0 ? " — discount applied" : ""}</span><span className="font-semibold">₹{Math.round(finalFee * 0.2).toLocaleString()}</span></div>
+                    </div>
+                  )}
+                  {form.payment_plan === "50-50 Custom" && (
+                    <div className="pt-2 space-y-0.5">
+                      <p className="text-[10px] text-muted-foreground font-body font-semibold">Installment Breakdown:</p>
+                      <div className="flex justify-between text-[10px] font-body"><span>1st (50%)</span><span className="font-semibold">₹{Math.round(finalFee * 0.5).toLocaleString()}</span></div>
+                      <div className="flex justify-between text-[10px] font-body"><span>2nd (50%){discountVal > 0 ? " — discount applied" : ""}</span><span className="font-semibold">₹{Math.round(finalFee * 0.5).toLocaleString()}</span></div>
+                    </div>
+                  )}
                 </div>
               </Section>
             </div>

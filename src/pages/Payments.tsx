@@ -27,8 +27,12 @@ type StudentOption = {
 
 type PaymentType = "full" | "part" | "installment" | "renewal" | "upgrade";
 
-// Fixed 50/30/20 installment structure
-const INSTALLMENT_SPLITS = [0.5, 0.3, 0.2];
+// Payment plan installment structures
+const PLAN_SPLITS: Record<string, number[]> = {
+  "Full Payment": [1.0],
+  "50-30-20 Installment": [0.5, 0.3, 0.2],
+  "50-50 Custom": [0.5, 0.5],
+};
 
 export default function Payments() {
   const [payments, setPayments] = useState<PaymentRow[]>([]);
@@ -73,8 +77,10 @@ export default function Payments() {
   const getInstallmentSchedule = () => {
     if (!selectedStudent) return [];
     const fee = selectedStudent.fee_amount;
+    const plan = selectedStudent.payment_plan || "50-30-20 Installment";
+    const splits = PLAN_SPLITS[plan] || PLAN_SPLITS["50-30-20 Installment"];
     const start = new Date(form.date);
-    return INSTALLMENT_SPLITS.map((pct, i) => {
+    return splits.map((pct, i) => {
       const d = new Date(start);
       d.setMonth(d.getMonth() + i);
       return { no: i + 1, date: d.toISOString().slice(0, 10), amount: Math.round(fee * pct), pct: Math.round(pct * 100) };
@@ -101,7 +107,7 @@ export default function Payments() {
         ...f,
         amount: schedule.length > 0 ? String(schedule[nextIdx]?.amount || "") : "",
         installment_no: nextIdx + 1,
-        total_installments: 3,
+        total_installments: schedule.length,
         status: "paid",
       }));
     } else if (paymentType === "part") {
@@ -120,13 +126,13 @@ export default function Payments() {
     });
     if (error) { toast.error("Failed: " + error.message); return; }
 
-    // Auto-create pending future installments for 50/30/20 structure
+    // Auto-create pending future installments
     if (paymentType === "installment" && form.installment_no === 1) {
       const schedule = getInstallmentSchedule();
       for (let i = 1; i < schedule.length; i++) {
         await supabase.from("payments").insert({
           student_id: form.student_id, amount: schedule[i].amount, method: form.method,
-          date: schedule[i].date, installment_no: i + 1, total_installments: 3,
+          date: schedule[i].date, installment_no: i + 1, total_installments: schedule.length,
           notes: `Installment ${i + 1} (${schedule[i].pct}%)`, status: "pending",
         });
       }
@@ -256,7 +262,7 @@ export default function Payments() {
               {([
                 { key: "full", label: "Full", icon: "💰" },
                 { key: "part", label: "Part", icon: "½" },
-                { key: "installment", label: "3-Part (50/30/20)", icon: "📅" },
+                { key: "installment", label: "Installment Plan", icon: "📅" },
                 { key: "renewal", label: "Renewal", icon: "🔄" },
                 { key: "upgrade", label: "Upgrade", icon: "⬆️" },
               ] as { key: PaymentType; label: string; icon: string }[]).map(t => (
@@ -318,10 +324,10 @@ export default function Payments() {
                 </div>
               </div>
 
-              {/* 50/30/20 Installment Schedule Preview */}
-              {paymentType === "installment" && selectedStudent && (
+               {/* Installment Schedule Preview */}
+               {paymentType === "installment" && selectedStudent && (
                 <div className="bg-accent/50 rounded-xl p-3 border border-accent">
-                  <p className="text-xs font-bold text-foreground font-body mb-2">📅 3-Part Payment Schedule (50/30/20)</p>
+                  <p className="text-xs font-bold text-foreground font-body mb-2">📅 Payment Schedule ({selectedStudent.payment_plan || "50-30-20"})</p>
                   <p className="text-[10px] text-muted-foreground font-body mb-2">Total Fee: ₹{selectedStudent.fee_amount.toLocaleString()}</p>
                   {getInstallmentSchedule().map(s => (
                     <div key={s.no} className="flex justify-between text-[11px] font-body py-1 border-b border-border/50 last:border-0">

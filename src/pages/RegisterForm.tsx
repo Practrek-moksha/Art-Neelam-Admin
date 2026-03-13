@@ -34,7 +34,7 @@ export default function RegisterForm() {
     name: "", dob: "", schoolName: "", address: "", emergencyContact: "",
     fatherName: "", fatherContact: "", motherName: "", motherContact: "",
     guardianName: "", whatsapp: "", email: "", course: "Basic",
-    batch: BATCHES[2], agreedTerms: false,
+    batch: BATCHES[2], agreedTerms: false, paymentPlan: "Full Payment",
   });
 
   const registrationUrl = typeof window !== "undefined"
@@ -203,13 +203,35 @@ export default function RegisterForm() {
               {BATCHES.map(b => <option key={b}>{b}</option>)}
             </select>
           </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground font-body">Payment Plan*</label>
+            <select value={form.paymentPlan} onChange={e => setForm(p => ({ ...p, paymentPlan: e.target.value }))}
+              className="w-full mt-1 px-3 py-2.5 bg-card border border-border rounded-xl text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
+              <option value="Full Payment">Full Payment</option>
+              <option value="50-30-20 Installment">50-30-20 Installment</option>
+              <option value="50-50 Custom">50-50 Custom</option>
+            </select>
+          </div>
           {/* Installment Preview */}
           <div className="bg-muted rounded-xl p-3">
-            <p className="text-xs font-bold text-foreground font-body mb-2">💰 Fee Structure (3 Installments)</p>
+            <p className="text-xs font-bold text-foreground font-body mb-2">💰 Fee Structure</p>
             <div className="space-y-1 text-[11px] font-body">
-              <div className="flex justify-between"><span className="text-muted-foreground">1st (at enrollment) — 50%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.5).toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">2nd — 30%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.3).toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">3rd — 20%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.2).toLocaleString()}</span></div>
+              {form.paymentPlan === "Full Payment" && (
+                <div className="flex justify-between"><span className="text-muted-foreground">Full Amount</span><span className="font-semibold text-foreground">₹{selectedCourse.fee.toLocaleString()}</span></div>
+              )}
+              {form.paymentPlan === "50-30-20 Installment" && (
+                <>
+                  <div className="flex justify-between"><span className="text-muted-foreground">1st (at enrollment) — 50%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.5).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">2nd — 30%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.3).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">3rd — 20%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.2).toLocaleString()}</span></div>
+                </>
+              )}
+              {form.paymentPlan === "50-50 Custom" && (
+                <>
+                  <div className="flex justify-between"><span className="text-muted-foreground">1st (at enrollment) — 50%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.5).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">2nd — 50%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.5).toLocaleString()}</span></div>
+                </>
+              )}
               <div className="flex justify-between border-t border-border pt-1 mt-1"><span className="font-bold text-foreground">Total</span><span className="font-bold text-primary">₹{selectedCourse.fee.toLocaleString()}</span></div>
             </div>
           </div>
