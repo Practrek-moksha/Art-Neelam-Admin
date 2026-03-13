@@ -268,6 +268,8 @@ export type Database = {
           mother_contact: string | null
           mother_name: string | null
           name: string
+          parent_account_created: boolean | null
+          parent_email: string | null
           payment_plan: string | null
           photo_url: string | null
           roll_number: string
@@ -298,6 +300,8 @@ export type Database = {
           mother_contact?: string | null
           mother_name?: string | null
           name: string
+          parent_account_created?: boolean | null
+          parent_email?: string | null
           payment_plan?: string | null
           photo_url?: string | null
           roll_number: string
@@ -328,6 +332,8 @@ export type Database = {
           mother_contact?: string | null
           mother_name?: string | null
           name?: string
+          parent_account_created?: boolean | null
+          parent_email?: string | null
           payment_plan?: string | null
           photo_url?: string | null
           roll_number?: string
