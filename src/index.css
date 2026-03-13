@@ -129,7 +129,7 @@
   padding-top: env(safe-area-inset-top, 0px);
 }
 
-/* Print styles — only show certificate/invoice, hide everything else */
+/* Print styles — only show certificate/invoice/id-card, hide everything else */
 @media print {
   body * {
     visibility: hidden;
@@ -140,10 +140,13 @@
   #invoice-area,
   #invoice-area *,
   #id-card-print-area,
-  #id-card-print-area * {
+  #id-card-print-area *,
+  #id-card-print-all,
+  #id-card-print-all * {
     visibility: visible !important;
   }
 
+  /* Certificate print — preserve pink background and all text colors */
   #certificate-print-area {
     position: fixed !important;
     left: 0 !important;
@@ -152,10 +155,19 @@
     min-height: 297mm !important;
     max-width: none !important;
     border-radius: 0 !important;
-    border: none !important;
     margin: 0 !important;
     padding: 0 !important;
     box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .cert-printable,
+  .cert-printable * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   #invoice-area {
@@ -164,6 +176,8 @@
     top: 0 !important;
     width: 100% !important;
     box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   #id-card-print-area {
@@ -173,6 +187,40 @@
     transform: translate(-50%, -50%) !important;
     width: 86mm !important;
     box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Print All ID Cards — 4 per page grid */
+  #id-card-print-all {
+    display: block !important;
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 210mm !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .id-card-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 4mm !important;
+    padding: 5mm !important;
+  }
+
+  .id-card-cell {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Every 4 cards = new page */
+  .id-card-cell:nth-child(4n+1) {
+    page-break-before: auto;
+  }
+  .id-card-cell:nth-child(4n+5) {
+    page-break-before: always;
   }
 
   .print\:hidden {
