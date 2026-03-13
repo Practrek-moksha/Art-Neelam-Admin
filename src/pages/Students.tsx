@@ -119,7 +119,7 @@ export default function Students() {
       total_sessions: Number(form.total_sessions), fee_amount: finalFee,
       payment_plan: form.payment_plan,
       discount_amount: discountVal, discount_percent: form.discount_percent,
-      roll_number: "TEMP",
+      roll_number: "TEMP", status: form.status,
     });
     if (error) {
       if (error.code === "23505") {
