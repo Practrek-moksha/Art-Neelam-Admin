@@ -142,7 +142,7 @@ export default function Layout({ children }: LayoutProps) {
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border pb-safe">
         <div className="flex items-center justify-around px-2 pt-2 pb-1">
-          {bottomNav.map(({ path, icon: Icon, label }) => (
+          {(role === "parent" ? [{ path: "/parent-portal", icon: Users, label: "Portal" }] : bottomNav).map(({ path, icon: Icon, label }) => (
             <Link key={path} to={path}
               className={cn("flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all",
                 isActive(path) ? "text-primary" : "text-muted-foreground")}>
