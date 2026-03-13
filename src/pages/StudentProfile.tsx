@@ -103,6 +103,7 @@ export default function StudentProfile() {
           <Link to={`/id-card?id=${student.id}`} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-xs font-semibold hover:opacity-80 transition-opacity"><IdCard className="w-3.5 h-3.5" /> ID Card</Link>
         </div>
         <div className="flex gap-2 mt-2 flex-wrap">
+          <SendCredentialsButton student={student} />
           <button onClick={() => openWhatsApp(parentPhone, templates.feeReminder(student.name, totalPending, nextDue?.date))} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-warm text-warm-foreground text-[10px] font-semibold hover:opacity-80"><Send className="w-3 h-3" /> Fee Reminder</button>
           <button onClick={() => openWhatsApp(student.whatsapp, templates.birthdayWish(student.name))} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary-soft text-primary text-[10px] font-semibold hover:opacity-80"><Send className="w-3 h-3" /> Birthday Wish</button>
           <button onClick={() => openWhatsApp(student.whatsapp, templates.welcomeStudent(student.name, student.course, student.batch))} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-[10px] font-semibold hover:opacity-80"><Send className="w-3 h-3" /> Welcome Msg</button>
