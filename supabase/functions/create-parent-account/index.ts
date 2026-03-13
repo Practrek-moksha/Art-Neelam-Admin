@@ -79,10 +79,10 @@ Deno.serve(async (req) => {
       userId = newUser.user.id;
 
       // Assign parent role
-      await supabase.from("user_roles").insert({
+      await supabase.from("user_roles").upsert({
         user_id: userId,
         role: "parent",
-      }).onConflict("user_id,role").ignoreDuplicates;
+      }, { onConflict: "user_id,role", ignoreDuplicates: true });
     }
 
     // Create parent-student link if not exists
