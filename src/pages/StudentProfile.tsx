@@ -343,6 +343,15 @@ function RecordFeeModal({ student, existingPayments, onClose, onSaved }: {
     }
 
     toast.success("Payment recorded!");
+    // Check graduation after recording payment
+    const { data: latestPayments } = await supabase.from("payments").select("*").eq("student_id", student.id);
+    const latestPaid = (latestPayments || []).filter((p: any) => p.status === "paid").reduce((s: number, p: any) => s + p.amount, 0);
+    const { data: attData } = await supabase.from("attendance").select("status").eq("student_id", student.id);
+    const sessionsAttended = (attData || []).filter((a: any) => a.status === "present" || a.status === "late").length;
+    if (latestPaid >= student.fee_amount && sessionsAttended >= student.total_sessions && student.status !== "graduated") {
+      await supabase.from("students").update({ status: "graduated" }).eq("id", student.id);
+      toast.success(`🎓 ${student.name} has graduated!`);
+    }
     onSaved();
   };
 
