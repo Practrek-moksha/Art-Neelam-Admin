@@ -324,10 +324,10 @@ export default function Payments() {
                 </div>
               </div>
 
-              {/* 50/30/20 Installment Schedule Preview */}
-              {paymentType === "installment" && selectedStudent && (
+               {/* Installment Schedule Preview */}
+               {paymentType === "installment" && selectedStudent && (
                 <div className="bg-accent/50 rounded-xl p-3 border border-accent">
-                  <p className="text-xs font-bold text-foreground font-body mb-2">📅 3-Part Payment Schedule (50/30/20)</p>
+                  <p className="text-xs font-bold text-foreground font-body mb-2">📅 Payment Schedule ({selectedStudent.payment_plan || "50-30-20"})</p>
                   <p className="text-[10px] text-muted-foreground font-body mb-2">Total Fee: ₹{selectedStudent.fee_amount.toLocaleString()}</p>
                   {getInstallmentSchedule().map(s => (
                     <div key={s.no} className="flex justify-between text-[11px] font-body py-1 border-b border-border/50 last:border-0">
