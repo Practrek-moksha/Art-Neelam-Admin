@@ -1,6 +1,6 @@
 // WhatsApp messaging utility
 // Admin number for receiving messages
-const ADMIN_WHATSAPP = "919920546217";
+const ADMIN_WHATSAPP = "919967701108";
 
 export function openWhatsApp(phone: string, message?: string) {
   const clean = phone.replace(/[\s\-\+]/g, "");
