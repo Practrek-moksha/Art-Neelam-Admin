@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Palette, CheckCircle, QrCode, FileText, X } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import logoImg from "@/assets/logo.png";
 
 const BATCHES = [
   "Professional (10:00 AM - 11:30 AM)",
@@ -9,6 +10,12 @@ const BATCHES = [
   "Basic 1 (1:00 PM - 2:30 PM)",
   "Basic 2 (2:30 PM - 4:00 PM)",
 ];
+
+const COURSE_FEES: Record<string, { fee: number; sessions: number; ages: string }> = {
+  Basic: { fee: 9000, sessions: 36, ages: "Ages 4–7" },
+  Advanced: { fee: 15000, sessions: 36, ages: "Ages 8–12" },
+  Professional: { fee: 30000, sessions: 36, ages: "Ages 13+" },
+};
 
 function isValidIndianPhone(phone: string): boolean {
   const cleaned = phone.replace(/[\s\-()]/g, "");
@@ -33,6 +40,8 @@ export default function RegisterForm() {
   const registrationUrl = typeof window !== "undefined"
     ? `${window.location.origin}/register`
     : "";
+
+  const selectedCourse = COURSE_FEES[form.course];
 
   const validatePhone = (phone: string) => {
     if (!phone) { setPhoneError("WhatsApp number is required"); return false; }
@@ -113,6 +122,8 @@ export default function RegisterForm() {
             )}
             <p className="text-xs font-semibold text-muted-foreground font-body mt-2">Course</p>
             <p className="text-sm font-body text-foreground">{form.course} • {form.batch}</p>
+            <p className="text-xs font-semibold text-muted-foreground font-body mt-2">Fee</p>
+            <p className="text-sm font-bold font-body text-primary">₹{selectedCourse.fee.toLocaleString()}</p>
           </div>
         </div>
       </div>
@@ -124,9 +135,7 @@ export default function RegisterForm() {
       <div className="gradient-primary px-5 py-6 pt-safe">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
-              <Palette className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <img src={logoImg} alt="Art Neelam" className="w-10 h-10 rounded-xl object-contain bg-primary-foreground/20 p-1" />
             <div>
               <h1 className="font-display font-bold text-primary-foreground text-lg">Art Neelam Academy</h1>
               <p className="text-xs text-primary-foreground/80 font-body">Student Registration Form</p>
@@ -169,11 +178,20 @@ export default function RegisterForm() {
         <FormSection title="Course Details">
           <div>
             <label className="text-xs font-semibold text-muted-foreground font-body">Course*</label>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {["Basic", "Advanced", "Professional"].map(c => (
-                <button key={c} type="button" onClick={() => setForm(p => ({ ...p, course: c }))}
-                  className={`py-2.5 rounded-xl text-xs font-bold font-body transition-all border ${form.course === c ? "gradient-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground hover:border-primary/50"}`}>
-                  {c}
+            <div className="space-y-2 mt-2">
+              {Object.entries(COURSE_FEES).map(([key, c]) => (
+                <button key={key} type="button" onClick={() => setForm(p => ({ ...p, course: key }))}
+                  className={`w-full text-left p-3 rounded-xl transition-all border ${form.course === key ? "gradient-primary text-primary-foreground border-primary" : "bg-card border-border text-foreground hover:border-primary/50"}`}>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="text-sm font-bold font-body">{key}</span>
+                      <span className={`text-xs font-body ml-2 ${form.course === key ? "text-primary-foreground/80" : "text-muted-foreground"}`}>({c.ages})</span>
+                    </div>
+                    <span className="font-display font-bold text-base">₹{c.fee.toLocaleString()}</span>
+                  </div>
+                  <p className={`text-[10px] font-body mt-0.5 ${form.course === key ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                    {c.sessions} sessions • Materials included
+                  </p>
                 </button>
               ))}
             </div>
@@ -185,9 +203,19 @@ export default function RegisterForm() {
               {BATCHES.map(b => <option key={b}>{b}</option>)}
             </select>
           </div>
+          {/* Installment Preview */}
+          <div className="bg-muted rounded-xl p-3">
+            <p className="text-xs font-bold text-foreground font-body mb-2">💰 Fee Structure (3 Installments)</p>
+            <div className="space-y-1 text-[11px] font-body">
+              <div className="flex justify-between"><span className="text-muted-foreground">1st (at enrollment) — 50%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.5).toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">2nd — 30%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.3).toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">3rd — 20%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.2).toLocaleString()}</span></div>
+              <div className="flex justify-between border-t border-border pt-1 mt-1"><span className="font-bold text-foreground">Total</span><span className="font-bold text-primary">₹{selectedCourse.fee.toLocaleString()}</span></div>
+            </div>
+          </div>
         </FormSection>
 
-        {/* Terms & Conditions with PDF preview */}
+        {/* Terms & Conditions */}
         <div className="bg-muted rounded-2xl p-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-display font-bold text-foreground text-sm">Terms & Conditions</h3>
@@ -199,7 +227,7 @@ export default function RegisterForm() {
           <div className="text-[11px] text-muted-foreground font-body space-y-1 mb-3 max-h-24 overflow-y-auto">
             <p>• Fees once paid are non-refundable.</p>
             <p>• Students are expected to maintain 75% attendance.</p>
-            <p>• Studio materials will be provided for Basic course only.</p>
+            <p>• Studio materials will be provided as per course.</p>
             <p>• Students must carry their ID card to every class.</p>
             <p>• The studio reserves the right to change batch timings with prior notice.</p>
           </div>
@@ -227,8 +255,7 @@ export default function RegisterForm() {
               <button onClick={() => setShowQR(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
             </div>
             <div className="bg-white p-4 rounded-xl inline-block mb-4">
-              <QRCodeSVG value={registrationUrl} size={200} level="H"
-                imageSettings={{ src: "", height: 0, width: 0, excavate: false }} />
+              <QRCodeSVG value={registrationUrl} size={200} level="H" />
             </div>
             <p className="text-xs text-muted-foreground font-body mb-2">Scan to open registration form</p>
             <div className="bg-muted rounded-xl px-3 py-2">

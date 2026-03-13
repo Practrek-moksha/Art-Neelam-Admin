@@ -22,6 +22,7 @@ interface StudentData {
   dob: string | null;
   enrollment_date: string | null;
   validity_end: string | null;
+  fee_amount: number;
 }
 
 export default function ParentPortal() {
@@ -43,14 +44,14 @@ export default function ParentPortal() {
     try {
       if (demoMode) {
         // In demo mode, show all students
-        const { data: studs } = await supabase.from("students").select("id, name, roll_number, course, batch, dob, enrollment_date, validity_end").eq("status", "active");
+        const { data: studs } = await supabase.from("students").select("id, name, roll_number, course, batch, dob, enrollment_date, validity_end, fee_amount").eq("status", "active");
         setStudents(studs || []);
       } else {
         // Real auth: only linked students
         const { data: links } = await supabase.from("student_parent_link").select("student_id").eq("parent_user_id", user!.id);
         if (links && links.length > 0) {
           const ids = links.map(l => l.student_id);
-          const { data: studs } = await supabase.from("students").select("id, name, roll_number, course, batch, dob, enrollment_date, validity_end").in("id", ids);
+          const { data: studs } = await supabase.from("students").select("id, name, roll_number, course, batch, dob, enrollment_date, validity_end, fee_amount").in("id", ids);
           setStudents(studs || []);
         }
       }

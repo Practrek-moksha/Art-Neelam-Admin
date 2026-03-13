@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import ParentPortal from "./pages/ParentPortal";
 import RegisterForm from "./pages/RegisterForm";
 import Auth from "./pages/Auth";
+import EnquiryForm from "./pages/EnquiryForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ const AppRoutes = () => {
     <Routes>
       {/* Public */}
       <Route path="/register" element={<RegisterForm />} />
+      <Route path="/enquiry" element={<EnquiryForm />} />
       <Route path="/auth" element={user ? <Navigate to={defaultRoute} replace /> : <Auth />} />
 
       {/* Admin routes */}
