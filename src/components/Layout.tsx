@@ -111,7 +111,7 @@ export default function Layout({ children }: LayoutProps) {
               </button>
             </div>
             <nav className="p-4 space-y-1">
-              {[...navItems, { path: "/parent-portal", icon: Users, label: "Parent Portal" }].map(({ path, icon: Icon, label }) => (
+              {(role === "parent" ? [{ path: "/parent-portal", icon: Users, label: "Parent Portal" }] : [...navItems, { path: "/parent-portal", icon: Users, label: "Parent Portal" }]).map(({ path, icon: Icon, label }) => (
                 <Link key={path} to={path} onClick={() => setSidebarOpen(false)}
                   className={cn(
                     "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all",
