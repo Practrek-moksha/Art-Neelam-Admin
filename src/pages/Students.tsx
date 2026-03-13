@@ -81,7 +81,7 @@ export default function Students() {
   }, [form.validity_start, form.total_sessions]);
 
   const fetchStudents = async () => {
-    const { data, error } = await supabase.from("students").select("id, roll_number, name, course, batch, status, validity_end, fee_amount, whatsapp, dob").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("students").select("id, roll_number, name, course, batch, status, validity_end, fee_amount, whatsapp, dob, enrollment_date").order("created_at", { ascending: false });
     if (error) { toast.error("Failed to load students"); console.error(error); }
     else setStudents(data || []);
     setLoading(false);
