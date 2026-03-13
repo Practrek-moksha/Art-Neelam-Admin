@@ -59,6 +59,18 @@ export default function StudentProfile() {
   const sessionsRemaining = Math.max(0, student.total_sessions - sessionsAttended);
   const isEligibleForCert = sessionsAttended >= student.total_sessions;
 
+  const checkAndGraduate = async () => {
+    // Re-fetch latest payments to check if all fees are paid
+    const { data: latestPayments } = await supabase.from("payments").select("*").eq("student_id", id);
+    const latestPaid = (latestPayments || []).filter((p: any) => p.status === "paid").reduce((s: number, p: any) => s + p.amount, 0);
+    const allFeesPaid = latestPaid >= student.fee_amount;
+    const allSessionsDone = sessionsAttended >= student.total_sessions;
+    if (allFeesPaid && allSessionsDone && student.status !== "graduated") {
+      await supabase.from("students").update({ status: "graduated" }).eq("id", id);
+      toast.success(`🎓 ${student.name} has graduated! All sessions completed & fees paid.`);
+    }
+  };
+
   const totalPaid = payments.filter(p => p.status === "paid").reduce((sum: number, p: any) => sum + p.amount, 0);
   const totalPending = payments.filter(p => p.status === "pending").reduce((sum: number, p: any) => sum + p.amount, 0);
   const discountVal = student.discount_percent > 0
@@ -206,6 +218,7 @@ export default function StudentProfile() {
                     <button onClick={async () => {
                       await supabase.from("payments").update({ status: "paid" }).eq("id", p.id);
                       toast.success("Marked as paid");
+                      await checkAndGraduate();
                       fetchData();
                     }} className="text-[9px] px-2 py-0.5 rounded-full bg-accent text-accent-foreground font-semibold hover:opacity-80">
                       ✓ Pay
@@ -330,6 +343,15 @@ function RecordFeeModal({ student, existingPayments, onClose, onSaved }: {
     }
 
     toast.success("Payment recorded!");
+    // Check graduation after recording payment
+    const { data: latestPayments } = await supabase.from("payments").select("*").eq("student_id", student.id);
+    const latestPaid = (latestPayments || []).filter((p: any) => p.status === "paid").reduce((s: number, p: any) => s + p.amount, 0);
+    const { data: attData } = await supabase.from("attendance").select("status").eq("student_id", student.id);
+    const sessionsAttended = (attData || []).filter((a: any) => a.status === "present" || a.status === "late").length;
+    if (latestPaid >= student.fee_amount && sessionsAttended >= student.total_sessions && student.status !== "graduated") {
+      await supabase.from("students").update({ status: "graduated" }).eq("id", student.id);
+      toast.success(`🎓 ${student.name} has graduated!`);
+    }
     onSaved();
   };
 

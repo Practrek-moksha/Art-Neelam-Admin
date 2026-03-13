@@ -123,12 +123,28 @@ export default function Attendance() {
       }
       setRecords(updatedRecords);
 
-      // Auto-flag inactive after 4 consecutive absents
+      // Auto-flag inactive after 4 consecutive absents OR graduate if all sessions done + fees paid
       for (const studentId of Object.keys(pendingChanges)) {
         if (checkConsecutiveAbsents(studentId, updatedRecords)) {
           const student = students.find(s => s.id === studentId);
           await supabase.from("students").update({ status: "inactive" }).eq("id", studentId);
           if (student) toast.warning(`${student.name} marked inactive (4+ consecutive absences)`);
+        } else {
+          // Check if student completed all sessions
+          const student = students.find(s => s.id === studentId);
+          if (student) {
+            const sessionsUsed = updatedRecords.filter(r => r.student_id === studentId && r.status === "present").length;
+            if (sessionsUsed >= student.total_sessions) {
+              // Check if fees fully paid
+              const { data: pmts } = await supabase.from("payments").select("amount, status").eq("student_id", studentId);
+              const totalPaid = (pmts || []).filter((p: any) => p.status === "paid").reduce((s: number, p: any) => s + p.amount, 0);
+              const { data: stData } = await supabase.from("students").select("fee_amount, status").eq("id", studentId).single();
+              if (stData && totalPaid >= stData.fee_amount && stData.status !== "graduated") {
+                await supabase.from("students").update({ status: "graduated" }).eq("id", studentId);
+                toast.success(`🎓 ${student.name} has graduated! All sessions & fees complete.`);
+              }
+            }
+          }
         }
       }
 
