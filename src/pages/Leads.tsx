@@ -38,10 +38,13 @@ export default function Leads() {
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<LeadStatus | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showEnquiryLink, setShowEnquiryLink] = useState(false);
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [sourceFilter, setSourceFilter] = useState<"all" | "auto" | "manual">("all");
   const [newLead, setNewLead] = useState({ name: "", phone: "", email: "", course: "Basic", source: "Website", notes: "", follow_up_date: "" });
   const navigate = useNavigate();
+
+  const enquiryUrl = typeof window !== "undefined" ? `${window.location.origin}/enquiry` : "";
 
   const fetchLeads = async () => {
     const { data, error } = await supabase.from("leads").select("*").order("created_at", { ascending: false });
