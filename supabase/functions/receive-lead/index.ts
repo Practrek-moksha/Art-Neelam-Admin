@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
@@ -11,28 +11,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Validate API key from header
-    const apiKey = req.headers.get("x-api-key");
-    const expectedKey = Deno.env.get("LEAD_API_KEY");
-
-    if (!expectedKey) {
-      console.error("LEAD_API_KEY secret not configured");
-      return new Response(JSON.stringify({ error: "Server misconfigured" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (!apiKey || apiKey !== expectedKey) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const body = await req.json();
     const { name, phone, email, course, source, notes } = body;
 
-    if (!name) {
-      return new Response(JSON.stringify({ error: "Name is required" }), {
+    if (!name || typeof name !== "string" || name.trim().length < 2) {
+      return new Response(JSON.stringify({ error: "Name is required (min 2 chars)" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!phone || typeof phone !== "string" || phone.trim().length < 10) {
+      return new Response(JSON.stringify({ error: "Valid phone number is required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -41,19 +30,35 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    const cleanPhone = phone.replace(/[\s\-()]/g, "").replace(/^\+91/, "");
+
+    // Rate limit: 1 lead per phone per 24h
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: existing } = await supabase
+      .from("leads")
+      .select("id")
+      .eq("phone", cleanPhone)
+      .gte("created_at", oneDayAgo);
+
+    if (existing && existing.length > 0) {
+      return new Response(JSON.stringify({ error: "An enquiry with this number was already submitted recently" }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data, error } = await supabase.from("leads").insert({
-      name,
-      phone: phone || null,
-      email: email || null,
+      name: name.trim(),
+      phone: cleanPhone,
+      email: email?.trim() || null,
       course: course || "Basic",
       source: source || "Website",
-      notes: notes || null,
+      notes: notes?.trim() || null,
       status: "new",
     }).select().single();
 
     if (error) {
       console.error("Insert error:", error);
-      return new Response(JSON.stringify({ error: "Failed to create lead" }), {
+      return new Response(JSON.stringify({ error: "Failed to submit enquiry" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
