@@ -34,7 +34,7 @@ export default function RegisterForm() {
     name: "", dob: "", schoolName: "", address: "", emergencyContact: "",
     fatherName: "", fatherContact: "", motherName: "", motherContact: "",
     guardianName: "", whatsapp: "", email: "", course: "Basic",
-    batch: BATCHES[2], agreedTerms: false,
+    batch: BATCHES[2], agreedTerms: false, paymentPlan: "Full Payment",
   });
 
   const registrationUrl = typeof window !== "undefined"
