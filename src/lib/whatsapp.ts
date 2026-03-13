@@ -37,6 +37,9 @@ export const templates = {
 
   customMessage: (studentName: string) =>
     `Hi! Regarding *${studentName}* at Art Neelam Academy —\n\n`,
+
+  parentCredentials: (parentName: string, studentName: string, email: string, password: string, portalUrl: string) =>
+    `Dear *${parentName}*,\n\nYour parent portal login for *${studentName}* at Art Neelam Academy is ready! 🎨\n\n📧 *Login ID:* ${email}\n🔑 *Password:* ${password}\n🔗 *Portal:* ${portalUrl}\n\nYou can view attendance, fee status, notices & more.\n\n– Art Neelam Academy\nContact: +91 9920546217`,
 };
 
 export function getAdminNumber() {
