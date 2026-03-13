@@ -6,6 +6,22 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const COURSE_FEES: Record<string, { fee: number; sessions: number }> = {
+  Basic: { fee: 9000, sessions: 36 },
+  Advanced: { fee: 15000, sessions: 36 },
+  Professional: { fee: 30000, sessions: 36 },
+};
+
+const PAYMENT_PLANS = ["Full Payment", "50-30-20 Installment", "50-50 Custom"];
+
+const STATUS_OPTIONS = ["active", "new", "graduated", "inactive"];
+const STATUS_COLORS: Record<string, string> = {
+  active: "bg-accent text-accent-foreground",
+  new: "bg-primary-soft text-primary",
+  graduated: "bg-secondary text-secondary-foreground",
+  inactive: "bg-muted text-muted-foreground",
+};
+
 const courseColors: Record<string, string> = {
   Basic: "bg-accent text-accent-foreground",
   Advanced: "bg-secondary text-secondary-foreground",
@@ -16,6 +32,7 @@ type Student = {
   id: string; roll_number: string; name: string; course: string;
   batch: string; status: string; validity_end: string | null;
   fee_amount: number; whatsapp: string; dob: string | null;
+  enrollment_date: string | null;
 };
 
 export default function Students() {
