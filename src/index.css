@@ -128,3 +128,50 @@
 .pt-safe {
   padding-top: env(safe-area-inset-top, 0px);
 }
+
+/* Print styles — only show certificate/invoice, hide everything else */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .certificate-print,
+  .certificate-print *,
+  #invoice-area,
+  #invoice-area * {
+    visibility: visible !important;
+  }
+
+  .certificate-print {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    max-width: none !important;
+    border-radius: 0 !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #invoice-area {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+  }
+
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  nav, aside, header, footer {
+    display: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 0;
+  }
+}
