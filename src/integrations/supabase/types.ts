@@ -273,6 +273,7 @@ export type Database = {
           roll_number: string
           school_name: string | null
           status: string
+          terms_accepted: boolean | null
           total_sessions: number
           validity_end: string | null
           validity_start: string | null
@@ -302,6 +303,7 @@ export type Database = {
           roll_number: string
           school_name?: string | null
           status?: string
+          terms_accepted?: boolean | null
           total_sessions?: number
           validity_end?: string | null
           validity_start?: string | null
@@ -331,6 +333,7 @@ export type Database = {
           roll_number?: string
           school_name?: string | null
           status?: string
+          terms_accepted?: boolean | null
           total_sessions?: number
           validity_end?: string | null
           validity_start?: string | null
