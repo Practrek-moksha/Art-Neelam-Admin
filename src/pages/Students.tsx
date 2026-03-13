@@ -295,9 +295,15 @@ export default function Students() {
               <Section title="Course & Batch">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground font-body">Course</label>
-                  <select value={form.course} onChange={e => setForm(p => ({ ...p, course: e.target.value }))}
+                  <select value={form.course} onChange={e => {
+                    const c = e.target.value;
+                    const config = COURSE_FEES[c];
+                    setForm(p => ({ ...p, course: c, fee_amount: config?.fee || p.fee_amount, total_sessions: config?.sessions || p.total_sessions }));
+                  }}
                     className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
-                    {["Basic", "Advanced", "Professional"].map(c => <option key={c}>{c}</option>)}
+                    {["Basic", "Advanced", "Professional"].map(c => (
+                      <option key={c} value={c}>{c} — ₹{COURSE_FEES[c].fee.toLocaleString()}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -305,6 +311,13 @@ export default function Students() {
                   <select value={form.batch} onChange={e => setForm(p => ({ ...p, batch: e.target.value }))}
                     className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
                     {BATCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground font-body">Status</label>
+                  <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
+                    className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
+                    {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
                   </select>
                 </div>
                 <FormField label="Enrollment Date" type="date" value={form.enrollment_date} onChange={v => setForm(p => ({ ...p, enrollment_date: v }))} />
@@ -318,7 +331,7 @@ export default function Students() {
                   <label className="text-xs font-semibold text-muted-foreground font-body">Payment Plan</label>
                   <select value={form.payment_plan} onChange={e => setForm(p => ({ ...p, payment_plan: e.target.value }))}
                     className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
-                    {["Monthly", "Quarterly", "Yearly", "Lump Sum", "Custom"].map(p => <option key={p}>{p}</option>)}
+                    {PAYMENT_PLANS.map(p => <option key={p}>{p}</option>)}
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -327,7 +340,7 @@ export default function Students() {
                 </div>
                 <div className="bg-accent rounded-xl p-3 space-y-1">
                   <div className="flex justify-between text-xs font-body">
-                    <span className="text-muted-foreground">Total Fee</span>
+                    <span className="text-muted-foreground">Course Fee</span>
                     <span className="font-semibold text-foreground">₹{form.fee_amount.toLocaleString()}</span>
                   </div>
                   {discountVal > 0 && (
@@ -340,6 +353,22 @@ export default function Students() {
                     <span className="text-foreground">Final Fee</span>
                     <span className="text-primary">₹{finalFee.toLocaleString()}</span>
                   </div>
+                  {/* Installment Preview */}
+                  {form.payment_plan === "50-30-20 Installment" && (
+                    <div className="pt-2 space-y-0.5">
+                      <p className="text-[10px] text-muted-foreground font-body font-semibold">Installment Breakdown:</p>
+                      <div className="flex justify-between text-[10px] font-body"><span>1st (50%)</span><span className="font-semibold">₹{Math.round(finalFee * 0.5).toLocaleString()}</span></div>
+                      <div className="flex justify-between text-[10px] font-body"><span>2nd (30%)</span><span className="font-semibold">₹{Math.round(finalFee * 0.3).toLocaleString()}</span></div>
+                      <div className="flex justify-between text-[10px] font-body"><span>3rd (20%){discountVal > 0 ? " — discount applied" : ""}</span><span className="font-semibold">₹{Math.round(finalFee * 0.2).toLocaleString()}</span></div>
+                    </div>
+                  )}
+                  {form.payment_plan === "50-50 Custom" && (
+                    <div className="pt-2 space-y-0.5">
+                      <p className="text-[10px] text-muted-foreground font-body font-semibold">Installment Breakdown:</p>
+                      <div className="flex justify-between text-[10px] font-body"><span>1st (50%)</span><span className="font-semibold">₹{Math.round(finalFee * 0.5).toLocaleString()}</span></div>
+                      <div className="flex justify-between text-[10px] font-body"><span>2nd (50%){discountVal > 0 ? " — discount applied" : ""}</span><span className="font-semibold">₹{Math.round(finalFee * 0.5).toLocaleString()}</span></div>
+                    </div>
+                  )}
                 </div>
               </Section>
             </div>
