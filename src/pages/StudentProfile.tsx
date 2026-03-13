@@ -432,22 +432,28 @@ function InvoiceModal({ payment, student, allPayments, onClose }: { payment: any
   const totalPaid = allPayments.filter(p => p.status === "paid").reduce((a: number, p: any) => a + p.amount, 0);
   const totalFee = student.fee_amount || 0;
 
+  // Generate sequential invoice number INV-AN-001 based on paid payment order
+  const paidPayments = allPayments.filter(p => p.status === "paid").sort((a: any, b: any) => a.date.localeCompare(b.date) || a.created_at.localeCompare(b.created_at));
+  const paymentIndex = paidPayments.findIndex(p => p.id === payment.id);
+  const invoiceNum = paymentIndex >= 0 ? paymentIndex + 1 : allPayments.findIndex(p => p.id === payment.id) + 1;
+  const invoiceId = `INV-AN-${String(invoiceNum).padStart(3, "0")}`;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-card rounded-2xl w-full max-w-md shadow-active animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-6 print:p-4" id="invoice-area">
           <div className="flex items-center justify-between mb-6 border-b-2 border-primary pb-4">
             <div className="flex items-center gap-3">
-              <img src={logoImg} alt="Art Neelam" className="w-14 h-auto" />
+              <img src={logoImg} alt="Art Neelam" className="w-16 h-16 object-contain" />
               <div>
                 <h2 className="font-display font-bold text-foreground text-lg">Art Neelam Academy</h2>
                 <p className="text-[10px] text-muted-foreground font-body">Drawing & Painting Classes</p>
-                <p className="text-[9px] text-muted-foreground font-body">📞 +91 9920546217</p>
+                <p className="text-[9px] text-muted-foreground font-body">📞 +91 99677 01108</p>
               </div>
             </div>
             <div className="text-right">
               <p className="font-display font-bold text-foreground text-base">INVOICE</p>
-              <p className="text-[10px] text-muted-foreground font-body">#{payment.id.slice(0, 8).toUpperCase()}</p>
+              <p className="text-xs font-bold text-primary font-body">{invoiceId}</p>
               <p className="text-[10px] text-muted-foreground font-body mt-1">
                 {new Date(payment.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
               </p>
@@ -513,7 +519,7 @@ function InvoiceModal({ payment, student, allPayments, onClose }: { payment: any
 
           <div className="mt-4 text-center">
             <p className="text-[9px] text-muted-foreground font-body">Thank you for choosing Art Neelam Academy</p>
-            <p className="text-[9px] text-muted-foreground/50 font-body mt-1">This is a computer-generated invoice</p>
+            <p className="text-[9px] text-muted-foreground/50 font-body mt-1">This is a computer-generated invoice · {invoiceId}</p>
           </div>
         </div>
 

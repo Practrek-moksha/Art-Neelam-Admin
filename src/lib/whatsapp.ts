@@ -1,6 +1,6 @@
 // WhatsApp messaging utility
 // Admin number for receiving messages
-const ADMIN_WHATSAPP = "919920546217";
+const ADMIN_WHATSAPP = "919967701108";
 
 export function openWhatsApp(phone: string, message?: string) {
   const clean = phone.replace(/[\s\-\+]/g, "");
@@ -18,7 +18,7 @@ export function messageAdmin(message: string) {
 // Pre-built message templates
 export const templates = {
   feeReminder: (studentName: string, amount: number, dueDate?: string) =>
-    `Dear Parent,\n\nThis is a reminder that the fee of ₹${amount.toLocaleString()} for *${studentName}* is due${dueDate ? ` on ${new Date(dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}` : " soon"}.\n\nKindly complete the payment to continue uninterrupted classes at Art Neelam Academy.\n\n– Art Neelam Academy\nContact: +91 9920546217`,
+    `Dear Parent,\n\nThis is a reminder that the fee of ₹${amount.toLocaleString()} for *${studentName}* is due${dueDate ? ` on ${new Date(dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}` : " soon"}.\n\nKindly complete the payment to continue uninterrupted classes at Art Neelam Academy.\n\n– Art Neelam Academy\nContact: +91 9967701108`,
 
   welcomeStudent: (studentName: string, course: string, batch: string) =>
     `Welcome to *Art Neelam Academy*! 🎨\n\nDear Parent,\n\nWe're delighted to have *${studentName}* join our ${course} course (${batch.split(" (")[0]} batch).\n\nLooking forward to a creative journey together! ✨`,
@@ -39,7 +39,7 @@ export const templates = {
     `Hi! Regarding *${studentName}* at Art Neelam Academy —\n\n`,
 
   parentCredentials: (parentName: string, studentName: string, email: string, password: string, portalUrl: string) =>
-    `Dear *${parentName}*,\n\nYour parent portal login for *${studentName}* at Art Neelam Academy is ready! 🎨\n\n📧 *Login ID:* ${email}\n🔑 *Password:* ${password}\n🔗 *Portal:* ${portalUrl}\n\nYou can view attendance, fee status, notices & more.\n\n– Art Neelam Academy\nContact: +91 9920546217`,
+    `Dear *${parentName}*,\n\nYour parent portal login for *${studentName}* at Art Neelam Academy is ready! 🎨\n\n📧 *Login ID:* ${email}\n🔑 *Password:* ${password}\n🔗 *Portal:* ${portalUrl}\n\nYou can view attendance, fee status, notices & more.\n\n– Art Neelam Academy\nContact: +91 9967701108`,
 };
 
 export function getAdminNumber() {
