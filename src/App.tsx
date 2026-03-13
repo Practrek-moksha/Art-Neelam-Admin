@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import ParentPortal from "./pages/ParentPortal";
 import RegisterForm from "./pages/RegisterForm";
 import Auth from "./pages/Auth";
+import EnquiryForm from "./pages/EnquiryForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
