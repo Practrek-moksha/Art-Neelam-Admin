@@ -149,6 +149,27 @@ export default function Students() {
 
   if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
+  // Auto-update fee when course changes
+  useEffect(() => {
+    const config = COURSE_FEES[form.course];
+    if (config) {
+      setForm(prev => ({ ...prev, fee_amount: config.fee, total_sessions: config.sessions }));
+    }
+  }, [form.course]);
+
+  // Student status filter
+  const [statusFilter, setStatusFilter] = useState("All");
+  
+  // Bifurcate students
+  const isNewStudent = (s: Student) => {
+    if (s.status === "new") return true;
+    if (!s.enrollment_date) return false;
+    const enrolled = new Date(s.enrollment_date);
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    return enrolled > threeMonthsAgo;
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between">
@@ -165,6 +186,20 @@ export default function Students() {
             <Plus className="w-4 h-4" /> Add
           </button>
         </div>
+      </div>
+
+      {/* Status Tabs */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+        {["All", "new", "active", "graduated", "inactive"].map(s => {
+          const count = s === "All" ? filtered.length : students.filter(st => s === "new" ? isNewStudent(st) : st.status === s).length;
+          return (
+            <button key={s} onClick={() => setStatusFilter(s)}
+              className={cn("flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold font-body transition-all",
+                statusFilter === s ? "gradient-primary text-primary-foreground shadow-sm" : "bg-card border border-border text-muted-foreground hover:border-primary hover:text-primary")}>
+              {s === "All" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)} ({count})
+            </button>
+          );
+        })}
       </div>
 
       <div className="flex gap-2">
