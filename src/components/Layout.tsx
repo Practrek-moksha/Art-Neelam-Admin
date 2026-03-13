@@ -45,13 +45,13 @@ export default function Layout({ children }: LayoutProps) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 bg-card border-r border-border shadow-card">
         <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-3">
+          <a href="https://nasdemo1.lovable.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img src={logoImg} alt="Art Neelam" className="w-10 h-auto rounded-xl" />
             <div>
               <h1 className="font-display text-base font-bold text-foreground leading-tight">Art Neelam</h1>
               <p className="text-xs text-muted-foreground font-body">Academy Manager</p>
             </div>
-          </div>
+          </a>
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-hide">
@@ -83,10 +83,10 @@ export default function Layout({ children }: LayoutProps) {
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b border-border shadow-sm pt-safe">
         <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
+          <a href="https://nasdemo1.lovable.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <img src={logoImg} alt="Art Neelam" className="w-8 h-auto rounded-lg" />
             <span className="font-display font-bold text-foreground text-base">Art Neelam Academy</span>
-          </div>
+          </a>
           <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-muted transition-colors">
             <Menu className="w-5 h-5 text-foreground" />
           </button>
@@ -99,13 +99,13 @@ export default function Layout({ children }: LayoutProps) {
           <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
           <aside className="relative w-72 bg-card h-full shadow-active animate-slide-in overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-border">
-              <div className="flex items-center gap-2">
+              <a href="https://nasdemo1.lovable.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                 <img src={logoImg} alt="Art Neelam" className="w-9 h-auto rounded-xl" />
                 <div>
                   <h1 className="font-display font-bold text-foreground text-sm">Art Neelam Academy</h1>
                   <p className="text-xs text-muted-foreground">Admin Panel</p>
                 </div>
-              </div>
+              </a>
               <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-muted">
                 <X className="w-5 h-5" />
               </button>

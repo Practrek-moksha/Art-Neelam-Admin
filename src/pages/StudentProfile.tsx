@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Phone, MessageCircle, IdCard, Calendar, CreditCard, User, BookOpen, Clock, Send, Award } from "lucide-react";
+import { ArrowLeft, Phone, MessageCircle, IdCard, Calendar, CreditCard, User, BookOpen, Clock, Send, Award, KeyRound, Loader2 } from "lucide-react";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function StudentProfile() {
   const { id } = useParams<{ id: string }>();
@@ -102,6 +103,7 @@ export default function StudentProfile() {
           <Link to={`/id-card?id=${student.id}`} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-xs font-semibold hover:opacity-80 transition-opacity"><IdCard className="w-3.5 h-3.5" /> ID Card</Link>
         </div>
         <div className="flex gap-2 mt-2 flex-wrap">
+          <SendCredentialsButton student={student} />
           <button onClick={() => openWhatsApp(parentPhone, templates.feeReminder(student.name, totalPending, nextDue?.date))} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-warm text-warm-foreground text-[10px] font-semibold hover:opacity-80"><Send className="w-3 h-3" /> Fee Reminder</button>
           <button onClick={() => openWhatsApp(student.whatsapp, templates.birthdayWish(student.name))} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary-soft text-primary text-[10px] font-semibold hover:opacity-80"><Send className="w-3 h-3" /> Birthday Wish</button>
           <button onClick={() => openWhatsApp(student.whatsapp, templates.welcomeStudent(student.name, student.course, student.batch))} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-[10px] font-semibold hover:opacity-80"><Send className="w-3 h-3" /> Welcome Msg</button>
@@ -225,5 +227,75 @@ function DetailRow({ label, value, sub }: { label: string; value: string; sub?: 
         {sub && <p className="text-[10px] text-muted-foreground font-body">{sub}</p>}
       </div>
     </div>
+  );
+}
+
+function SendCredentialsButton({ student }: { student: any }) {
+  const [loading, setLoading] = useState(false);
+  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
+
+  const handleCreate = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-parent-account", {
+        body: { student_id: student.id },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      setCredentials({ email: data.email, password: data.password });
+      toast.success("Parent account created!");
+
+      // Auto-open WhatsApp with credentials
+      const parentPhone = student.father_contact || student.mother_contact || student.whatsapp;
+      const portalUrl = `${window.location.origin}/auth`;
+      openWhatsApp(
+        parentPhone,
+        templates.parentCredentials(
+          data.parent_name,
+          data.student_name,
+          data.email,
+          data.password,
+          portalUrl
+        )
+      );
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create parent account");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (credentials) {
+    return (
+      <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent text-accent-foreground text-[10px] font-semibold">
+        <KeyRound className="w-3 h-3" />
+        <span>{credentials.email}</span>
+        <button
+          onClick={() => {
+            const parentPhone = student.father_contact || student.mother_contact || student.whatsapp;
+            const portalUrl = `${window.location.origin}/auth`;
+            openWhatsApp(parentPhone, templates.parentCredentials(
+              student.father_name || student.mother_name || "Parent",
+              student.name, credentials.email, credentials.password, portalUrl
+            ));
+          }}
+          className="ml-1 underline"
+        >
+          Resend
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={handleCreate}
+      disabled={loading}
+      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-semibold hover:opacity-80 disabled:opacity-50"
+    >
+      {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <KeyRound className="w-3 h-3" />}
+      {student.parent_account_created ? "Resend Credentials" : "Send Parent Login"}
+    </button>
   );
 }
