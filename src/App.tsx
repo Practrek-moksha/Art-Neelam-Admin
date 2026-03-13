@@ -80,7 +80,7 @@ const AppRoutes = () => {
       <Route path="/settings" element={<ProtectedRoute adminOnly><Layout><Settings /></Layout></ProtectedRoute>} />
 
       {/* Parent portal - accessible by both */}
-      <Route path="/parent-portal" element={<ProtectedRoute><Layout><ParentPortal /></Layout></ProtectedRoute>} />
+      <Route path="/parent-portal" element={<ProtectedRoute><ParentPortal /></ProtectedRoute>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
