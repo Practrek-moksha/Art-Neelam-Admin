@@ -262,7 +262,7 @@ export default function Payments() {
               {([
                 { key: "full", label: "Full", icon: "💰" },
                 { key: "part", label: "Part", icon: "½" },
-                { key: "installment", label: "3-Part (50/30/20)", icon: "📅" },
+                { key: "installment", label: "Installment Plan", icon: "📅" },
                 { key: "renewal", label: "Renewal", icon: "🔄" },
                 { key: "upgrade", label: "Upgrade", icon: "⬆️" },
               ] as { key: PaymentType; label: string; icon: string }[]).map(t => (
