@@ -37,8 +37,8 @@ function ProtectedRoute({ children, adminOnly = false }: { children: React.React
 
   if (!user) return <Navigate to="/auth" replace />;
 
-  // Parents can only access parent portal
-  if (role === "parent" && adminOnly) {
+  // Only admins can access admin routes
+  if (adminOnly && role !== "admin") {
     return <Navigate to="/parent-portal" replace />;
   }
 
@@ -56,8 +56,8 @@ const AppRoutes = () => {
     );
   }
 
-  // Redirect logged-in parents to parent portal
-  const defaultRoute = role === "parent" ? "/parent-portal" : "/";
+  // Non-admin users always land in parent portal
+  const defaultRoute = role === "admin" ? "/" : "/parent-portal";
 
   return (
     <Routes>
