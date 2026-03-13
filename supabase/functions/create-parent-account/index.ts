@@ -10,7 +10,7 @@ const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function generatePassword(): string {
   let pass = "";
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 6; i++) {
     pass += CHARS[Math.floor(Math.random() * CHARS.length)];
   }
   return pass;
