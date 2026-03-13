@@ -126,13 +126,13 @@ export default function Payments() {
     });
     if (error) { toast.error("Failed: " + error.message); return; }
 
-    // Auto-create pending future installments for 50/30/20 structure
+    // Auto-create pending future installments
     if (paymentType === "installment" && form.installment_no === 1) {
       const schedule = getInstallmentSchedule();
       for (let i = 1; i < schedule.length; i++) {
         await supabase.from("payments").insert({
           student_id: form.student_id, amount: schedule[i].amount, method: form.method,
-          date: schedule[i].date, installment_no: i + 1, total_installments: 3,
+          date: schedule[i].date, installment_no: i + 1, total_installments: schedule.length,
           notes: `Installment ${i + 1} (${schedule[i].pct}%)`, status: "pending",
         });
       }
