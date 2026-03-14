@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, UserPlus, IndianRupee, CalendarCheck, Cake, TrendingUp, MessageCircle, Phone, Bell, Award, AlertTriangle, Clock } from "lucide-react";
+import { Users, UserPlus, IndianRupee, CalendarCheck, Cake, TrendingUp, MessageCircle, Phone, Bell, Award, AlertTriangle, Clock, Receipt } from "lucide-react";
 import { Link } from "react-router-dom";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ const statusColors: Record<string, string> = {
 export default function Dashboard() {
   const [stats, setStats] = useState({ leads: 0, newLeads: 0, activeStudents: 0, totalStudents: 0, revenue: 0, attendanceToday: 0, noticeCount: 0 });
   const [automation, setAutomation] = useState({ feesDueSoon: 0, overduePayments: 0, certificatesReady: 0, expiredValidity: 0 });
+  const [expenseSummary, setExpenseSummary] = useState({ monthExpenses: 0, totalExpenses: 0, profit: 0 });
   const [recentLeads, setRecentLeads] = useState<any[]>([]);
   const [upcomingBirthdays, setUpcomingBirthdays] = useState<any[]>([]);
   const [notices, setNotices] = useState<any[]>([]);
@@ -24,12 +25,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     (async () => {
-      const [leadsRes, studentsRes, paymentsRes, attendanceRes, noticesRes] = await Promise.all([
+      const [leadsRes, studentsRes, paymentsRes, attendanceRes, noticesRes, expensesRes] = await Promise.all([
         supabase.from("leads").select("*").order("created_at", { ascending: false }),
         supabase.from("students").select("id, name, dob, status, whatsapp, total_sessions, validity_end"),
         supabase.from("payments").select("amount, status, date, student_id"),
         supabase.from("attendance").select("student_id, date, status"),
         supabase.from("notices").select("*").order("date", { ascending: false }).limit(3),
+        supabase.from("expenses").select("amount, date"),
       ]);
 
       const leads = leadsRes.data || [];
@@ -37,11 +39,16 @@ export default function Dashboard() {
       const payments = paymentsRes.data || [];
       const attendance = attendanceRes.data || [];
       const noticesList = noticesRes.data || [];
+      const expenses = expensesRes.data || [];
       const todayStr = today.toISOString().slice(0, 10);
       const todayAttendance = attendance.filter(a => a.date === todayStr);
 
       const monthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
       const monthRevenue = payments.filter(p => p.status === "paid" && p.date.startsWith(monthKey)).reduce((a, p) => a + p.amount, 0);
+      const totalRevenue = payments.filter(p => p.status === "paid").reduce((a, p) => a + p.amount, 0);
+      
+      const monthExpenses = expenses.filter(e => e.date.startsWith(monthKey)).reduce((a, e) => a + e.amount, 0);
+      const totalExpenses = expenses.reduce((a, e) => a + e.amount, 0);
 
       const bdays = students.filter(s => {
         if (!s.dob) return false;
@@ -83,6 +90,7 @@ export default function Dashboard() {
         noticeCount: noticesList.length,
       });
       setAutomation({ feesDueSoon, overduePayments, certificatesReady, expiredValidity });
+      setExpenseSummary({ monthExpenses, totalExpenses, profit: monthRevenue - monthExpenses });
       setRecentLeads(leads.slice(0, 4));
       setUpcomingBirthdays(bdays);
       setNotices(noticesList);
@@ -139,6 +147,31 @@ export default function Dashboard() {
             <p className="text-[10px] text-primary font-semibold font-body mt-1">{stat.sub}</p>
           </div>
         ))}
+      </div>
+
+      {/* Expense Summary & Profit */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-card rounded-2xl shadow-card border border-border p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Receipt className="w-4 h-4 text-destructive" />
+            <p className="text-xs font-semibold text-muted-foreground font-body">Expenses (Month)</p>
+          </div>
+          <p className="font-display text-xl font-bold text-foreground">₹{expenseSummary.monthExpenses.toLocaleString()}</p>
+        </div>
+        <div className={`rounded-2xl p-4 ${expenseSummary.profit >= 0 ? "bg-accent" : "bg-destructive/10"}`}>
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp className={`w-4 h-4 ${expenseSummary.profit >= 0 ? "text-accent-foreground" : "text-destructive"}`} />
+            <p className={`text-xs font-semibold font-body ${expenseSummary.profit >= 0 ? "text-accent-foreground" : "text-destructive"}`}>Profit (Month)</p>
+          </div>
+          <p className="font-display text-xl font-bold text-foreground">₹{expenseSummary.profit.toLocaleString()}</p>
+        </div>
+        <div className="bg-primary-soft rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Receipt className="w-4 h-4 text-primary" />
+            <p className="text-xs font-semibold text-primary font-body">Total Expenses</p>
+          </div>
+          <p className="font-display text-xl font-bold text-foreground">₹{expenseSummary.totalExpenses.toLocaleString()}</p>
+        </div>
       </div>
 
       <div>

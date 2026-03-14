@@ -7,6 +7,7 @@ import logoImg from "@/assets/logo.png";
 type StudentCert = {
   id: string; name: string; roll_number: string; course: string;
   total_sessions: number; sessionsAttended: number; feesPaid: boolean;
+  status: string;
 };
 
 export default function Certificate() {
@@ -19,7 +20,7 @@ export default function Certificate() {
   useEffect(() => {
     (async () => {
       const [sRes, aRes, pRes] = await Promise.all([
-        supabase.from("students").select("id, name, roll_number, course, total_sessions, fee_amount").in("status", ["active", "new"]),
+        supabase.from("students").select("id, name, roll_number, course, total_sessions, fee_amount, status").in("status", ["active", "new", "graduated"]),
         supabase.from("attendance").select("student_id, status"),
         supabase.from("payments").select("student_id, amount, status"),
       ]);
@@ -41,28 +42,31 @@ export default function Certificate() {
       }));
 
       setStudents(enriched);
+      // Select first eligible, or graduated, or first student
       const eligible = enriched.filter(s => s.sessionsAttended >= s.total_sessions && s.feesPaid);
+      const graduated = enriched.filter(s => s.status === "graduated");
       if (eligible.length > 0) setSelectedId(eligible[0].id);
+      else if (graduated.length > 0) setSelectedId(graduated[0].id);
       else if (enriched.length > 0) setSelectedId(enriched[0].id);
       setLoading(false);
     })();
   }, []);
 
   const student = students.find(s => s.id === selectedId);
-  const isEligible = student ? student.sessionsAttended >= student.total_sessions && student.feesPaid : false;
+  const isEligible = student ? (student.sessionsAttended >= student.total_sessions && student.feesPaid) || student.status === "graduated" : false;
 
   const filtered = students.filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase()) || s.roll_number.toLowerCase().includes(search.toLowerCase())
   );
 
-  const eligibleStudents = students.filter(s => s.sessionsAttended >= s.total_sessions && s.feesPaid);
+  const eligibleStudents = students.filter(s => (s.sessionsAttended >= s.total_sessions && s.feesPaid) || s.status === "graduated");
 
   const handlePrint = () => {
     if (!isEligible) { toast.error("Student not eligible yet"); return; }
     window.print();
   };
 
-  const certId = student ? `NAS-CERT-${student.roll_number.replace(/^(NAS|ANA)-/, "")}` : "";
+  const certId = student ? `AN-CERT-${student.roll_number.replace(/^(NAS|ANA|AN)-/, "")}` : "";
   const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 
   if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
@@ -88,7 +92,7 @@ export default function Certificate() {
 
       <div className="print:hidden flex gap-2 overflow-x-auto scrollbar-hide pb-1">
         {filtered.map(s => {
-          const eligible = s.sessionsAttended >= s.total_sessions && s.feesPaid;
+          const eligible = (s.sessionsAttended >= s.total_sessions && s.feesPaid) || s.status === "graduated";
           return (
             <button key={s.id} onClick={() => setSelectedId(s.id)}
               className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold font-body transition-all border ${
@@ -102,7 +106,7 @@ export default function Certificate() {
         })}
       </div>
 
-      {/* Certificate — only this shows on print */}
+      {/* Certificate */}
       {student && (
         <div className="flex justify-center">
           <div ref={certRef} id="certificate-print-area"
