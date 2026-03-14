@@ -47,7 +47,7 @@ export default function Expenses() {
   const addExpense = async () => {
     if (!form.description || !form.amount) return;
     const { error } = await supabase.from("expenses").insert({
-      category: form.category, description: form.description, amount: Number(form.amount), method: form.method, date: form.date,
+      category: form.category, description: form.description, amount: Number(form.amount), method: form.method, date: form.date, phone: form.phone || null,
     });
     if (error) { toast.error("Failed to add expense: " + error.message); return; }
     toast.success("Expense added!");
