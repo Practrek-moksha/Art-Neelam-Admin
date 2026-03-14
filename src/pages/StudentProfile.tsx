@@ -104,7 +104,34 @@ export default function StudentProfile() {
       {/* Profile Card */}
       <div className="bg-card rounded-2xl shadow-card border border-border p-5">
         <div className="flex items-start gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-primary-soft flex items-center justify-center font-display font-bold text-primary text-2xl flex-shrink-0">{student.name[0]}</div>
+          <div className="relative w-16 h-16 rounded-2xl bg-primary-soft flex items-center justify-center font-display font-bold text-primary text-2xl flex-shrink-0 overflow-hidden group cursor-pointer"
+            onClick={() => {
+              const input = document.createElement("input");
+              input.type = "file"; input.accept = "image/*";
+              input.onchange = async (e: any) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 1024 * 1024) { toast.error("Photo must be under 1MB"); return; }
+                const ext = file.name.split(".").pop();
+                const path = `${student.id}.${ext}`;
+                const { error } = await supabase.storage.from("student-photos").upload(path, file, { upsert: true });
+                if (error) { toast.error("Upload failed"); return; }
+                const { data } = supabase.storage.from("student-photos").getPublicUrl(path);
+                await supabase.from("students").update({ photo_url: data.publicUrl + "?t=" + Date.now() }).eq("id", student.id);
+                toast.success("Photo updated!");
+                fetchData();
+              };
+              input.click();
+            }}>
+            {student.photo_url ? (
+              <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
+            ) : (
+              student.name[0]
+            )}
+            <div className="absolute inset-0 bg-foreground/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera className="w-5 h-5 text-white" />
+            </div>
+          </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-display font-bold text-foreground text-lg">{student.name}</h2>
             <p className="text-xs text-muted-foreground font-body">{student.roll_number}</p>
