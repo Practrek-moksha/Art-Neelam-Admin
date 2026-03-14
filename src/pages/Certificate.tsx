@@ -128,7 +128,7 @@ export default function Certificate() {
                 <p className="text-[10px] print:text-sm font-body tracking-[0.3em] mt-0.5" style={{ color: "rgba(30,58,95,0.7)" }}>OF COMPLETION</p>
               </div>
 
-              <img src={logoImg} alt="Art Neelam" className="w-28 print:w-48 h-auto my-2 print:my-6" />
+              <img src={logoImg} alt="Art Neelam" className="w-36 print:w-56 h-auto my-2 print:my-6" />
 
               <p className="text-[9px] print:text-sm font-body italic max-w-xs print:max-w-md leading-relaxed" style={{ color: "#8b4560" }}>
                 "Creativity takes courage, and every masterpiece begins with a single stroke."
