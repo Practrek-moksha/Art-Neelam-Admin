@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Printer, Search, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -79,7 +79,7 @@ export default function IDCard() {
         ))}
       </div>
 
-      {/* Single ID Card Preview */}
+      {/* Single ID Card Preview — White Background */}
       {student && !printAll && (
         <div className="flex justify-center">
           <div id="id-card-print-area" className="print:shadow-none" style={{ width: "360px" }}>
@@ -88,7 +88,7 @@ export default function IDCard() {
         </div>
       )}
 
-      {/* Print All — 4 per page grid, only visible during print */}
+      {/* Print All */}
       <div id="id-card-print-all" className={printAll ? "" : "hidden"}>
         <div className="id-card-grid">
           {students.map(s => (
@@ -101,7 +101,6 @@ export default function IDCard() {
 
       {students.length === 0 && <p className="text-center text-muted-foreground text-sm py-8">No students found. Add students first.</p>}
 
-      {/* All Students Grid */}
       {students.length > 0 && (
         <div className="print:hidden">
           <h3 className="font-display font-bold text-foreground text-base mb-3">All Students</h3>
@@ -129,15 +128,15 @@ export default function IDCard() {
 
 function SingleIDCard({ student }: { student: StudentCard }) {
   return (
-    <div className="rounded-2xl overflow-hidden shadow-active print:shadow-none print:rounded-lg"
-      style={{ background: "linear-gradient(135deg, hsl(220 40% 15%), hsl(220 45% 25%))" }}>
+    <div className="rounded-2xl overflow-hidden shadow-active print:shadow-none print:rounded-lg border border-border"
+      style={{ background: "#ffffff" }}>
       
       {/* Top Banner with Logo */}
-      <div className="px-5 pt-5 pb-3 flex items-center gap-3">
+      <div className="px-5 pt-5 pb-3 flex items-center gap-3 border-b border-border">
         <img src={logoImg} alt="Art Neelam" className="w-20 h-20 rounded-xl object-contain" />
         <div>
-          <h2 className="font-display font-bold text-lg leading-tight" style={{ color: "#d4af37" }}>Art Neelam Academy</h2>
-          <p className="text-[10px] font-body font-medium tracking-wide" style={{ color: "rgba(255,255,255,0.6)" }}>STUDENT IDENTITY CARD</p>
+          <h2 className="font-display font-bold text-lg leading-tight" style={{ color: "#1e3a5f" }}>Art Neelam Academy</h2>
+          <p className="text-[10px] font-body font-medium tracking-wide text-muted-foreground">STUDENT IDENTITY CARD</p>
         </div>
       </div>
 
@@ -148,8 +147,8 @@ function SingleIDCard({ student }: { student: StudentCard }) {
       <div className="px-5 py-4 flex gap-4">
         {/* Photo */}
         <div className="flex-shrink-0">
-          <div className="w-20 h-24 rounded-xl overflow-hidden flex items-center justify-center"
-            style={{ border: "2px solid rgba(212,175,55,0.5)", background: "rgba(255,255,255,0.08)" }}>
+          <div className="w-20 h-24 rounded-xl overflow-hidden flex items-center justify-center bg-muted"
+            style={{ border: "2px solid rgba(212,175,55,0.5)" }}>
             {student.photo_url ? (
               <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
             ) : (
@@ -158,14 +157,14 @@ function SingleIDCard({ student }: { student: StudentCard }) {
           </div>
         </div>
 
-        {/* Details */}
+        {/* Details — black text on white bg */}
         <div className="flex-1 min-w-0 space-y-1.5">
-          <h3 className="font-display font-bold text-base leading-tight truncate" style={{ color: "#ffffff" }}>{student.name}</h3>
+          <h3 className="font-display font-bold text-base leading-tight truncate text-foreground">{student.name}</h3>
           
           <div className="space-y-1">
             <IDField label="ID" value={student.roll_number} highlight />
             <IDField label="Course" value={student.course} />
-            <IDField label="Batch" value={student.batch.split(" (")[0]} />
+            <IDField label="Batch" value={student.batch} />
             <IDField label="Phone" value={student.whatsapp} />
             <IDField label="Parent" value={student.father_contact || student.mother_contact || "—"} />
             <IDField label="Valid Till" value={student.validity_end ? new Date(student.validity_end).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"} />
@@ -176,8 +175,8 @@ function SingleIDCard({ student }: { student: StudentCard }) {
       {/* Footer */}
       <div className="px-5 pb-4">
         <div className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: "linear-gradient(90deg, #d4af37, #c9a227)" }}>
-          <span className="text-[9px] font-body font-bold" style={{ color: "hsl(220 40% 15%)" }}>artneelam.academy</span>
-          <span className="text-[9px] font-body font-bold" style={{ color: "hsl(220 40% 15%)" }}>📞 +91 99677 01108</span>
+          <span className="text-[9px] font-body font-bold text-white">artneelam.academy</span>
+          <span className="text-[9px] font-body font-bold text-white">📞 +91 99677 01108</span>
         </div>
       </div>
     </div>
@@ -187,8 +186,8 @@ function SingleIDCard({ student }: { student: StudentCard }) {
 function IDField({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[9px] font-body w-12 flex-shrink-0" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
-      <span className={`text-[10px] font-semibold font-body`} style={{ color: highlight ? "#d4af37" : "#ffffff" }}>{value}</span>
+      <span className="text-[9px] font-body w-12 flex-shrink-0 text-muted-foreground">{label}</span>
+      <span className={`text-[10px] font-semibold font-body ${highlight ? "text-primary" : "text-foreground"}`}>{value}</span>
     </div>
   );
 }

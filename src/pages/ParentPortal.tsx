@@ -33,7 +33,7 @@ export default function ParentPortal() {
   const [showInvoice, setShowInvoice] = useState<any>(null);
   const [showIDCard, setShowIDCard] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
-  const [activeTab, setActiveTab] = useState<"summary" | "fees" | "id-card" | "certificate">("summary");
+  const [activeTab, setActiveTab] = useState<"summary" | "attendance" | "fees" | "id-card" | "certificate">("summary");
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -118,6 +118,7 @@ export default function ParentPortal() {
 
   const tabs = [
     { key: "summary" as const, label: "Summary", icon: BookOpen },
+    { key: "attendance" as const, label: "Attendance", icon: CalendarCheck },
     { key: "fees" as const, label: "Fees", icon: CreditCard },
     { key: "id-card" as const, label: "ID Card", icon: IdCard },
     { key: "certificate" as const, label: "Certificate", icon: Award },
@@ -263,6 +264,45 @@ export default function ParentPortal() {
               <div className="flex justify-between"><span className="text-muted-foreground">Total Sessions</span><span className="font-semibold text-foreground">{student.total_sessions}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Status</span><span className="font-semibold text-foreground capitalize">{student.status}</span></div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== ATTENDANCE TAB ===== */}
+      {activeTab === "attendance" && (
+        <div className="space-y-4">
+          <div className="bg-card rounded-2xl shadow-card border border-border p-4">
+            <h3 className="font-display font-bold text-foreground text-sm mb-3">Attendance Log</h3>
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <div className="bg-accent rounded-xl p-2.5 text-center">
+                <p className="text-[10px] text-accent-foreground font-body font-semibold">Present</p>
+                <p className="font-display font-bold text-foreground text-lg">{presentDays}</p>
+              </div>
+              <div className="bg-destructive/10 rounded-xl p-2.5 text-center">
+                <p className="text-[10px] text-destructive font-body font-semibold">Absent</p>
+                <p className="font-display font-bold text-foreground text-lg">{attendance.filter(a => a.status === "absent").length}</p>
+              </div>
+              <div className="bg-muted rounded-xl p-2.5 text-center">
+                <p className="text-[10px] text-muted-foreground font-body font-semibold">Total</p>
+                <p className="font-display font-bold text-foreground text-lg">{attendance.length}</p>
+              </div>
+            </div>
+            {attendance.length === 0 ? (
+              <p className="text-xs text-muted-foreground font-body text-center py-4">No attendance recorded yet</p>
+            ) : (
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                {attendance.slice(0, 30).map((a: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                    <span className="text-xs text-foreground font-body">{new Date(a.date).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                      a.status === "present" ? "bg-accent text-accent-foreground" :
+                      a.status === "absent" ? "bg-destructive/10 text-destructive" :
+                      "bg-muted text-muted-foreground"
+                    }`}>{a.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
