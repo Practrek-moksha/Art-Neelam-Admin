@@ -52,7 +52,7 @@ export default function Expenses() {
     if (error) { toast.error("Failed to add expense: " + error.message); return; }
     toast.success("Expense added!");
     setShowForm(false);
-    setForm({ category: "Art Supplies", description: "", amount: "", method: "UPI", date: new Date().toISOString().slice(0, 10) });
+    setForm({ category: "Art Supplies", description: "", amount: "", method: "UPI", date: new Date().toISOString().slice(0, 10), phone: "" });
     fetchExpenses();
   };
 
