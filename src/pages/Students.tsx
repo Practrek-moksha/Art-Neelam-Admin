@@ -314,6 +314,32 @@ export default function Students() {
             </div>
             <div className="p-6 space-y-4">
               <Section title="Personal Info">
+                {/* Photo Upload */}
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground font-body">Student Photo (max 1MB)</label>
+                  <div className="flex items-center gap-3 mt-1">
+                    <div onClick={() => photoRef.current?.click()}
+                      className="w-16 h-16 rounded-xl bg-muted border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors overflow-hidden">
+                      {photoPreview ? (
+                        <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera className="w-5 h-5 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <button type="button" onClick={() => photoRef.current?.click()}
+                        className="text-xs font-semibold text-primary font-body hover:underline">
+                        {photoPreview ? "Change Photo" : "Upload Photo"}
+                      </button>
+                      {photoPreview && (
+                        <button type="button" onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
+                          className="ml-2 text-xs text-destructive font-body hover:underline">Remove</button>
+                      )}
+                      <p className="text-[10px] text-muted-foreground font-body mt-0.5">JPG, PNG — max 1MB</p>
+                    </div>
+                    <input ref={photoRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                  </div>
+                </div>
                 <FormField label="Student Name*" value={form.name} onChange={v => setForm(p => ({ ...p, name: v }))} />
                 <FormField label="Date of Birth" type="date" value={form.dob} onChange={v => setForm(p => ({ ...p, dob: v }))} />
                 <FormField label="School Name" value={form.school_name} onChange={v => setForm(p => ({ ...p, school_name: v }))} />
