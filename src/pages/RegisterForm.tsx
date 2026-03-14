@@ -134,6 +134,7 @@ export default function RegisterForm() {
       if (data?.error) throw new Error(data.error);
 
       setRollNumber(data?.roll_number || "");
+      localStorage.removeItem("register_form_draft");
       setSubmitted(true);
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");

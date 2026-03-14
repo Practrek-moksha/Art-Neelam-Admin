@@ -65,6 +65,7 @@ export default function EnquiryForm() {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Submission failed");
+      localStorage.removeItem("enquiry_form_draft");
       setSubmitted(true);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
