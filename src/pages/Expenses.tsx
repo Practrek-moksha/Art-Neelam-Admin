@@ -23,7 +23,7 @@ export default function Expenses() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
-  const [form, setForm] = useState({ category: "Art Supplies", description: "", amount: "", method: "UPI", date: new Date().toISOString().slice(0, 10) });
+  const [form, setForm] = useState({ category: "Art Supplies", description: "", amount: "", method: "UPI", date: new Date().toISOString().slice(0, 10), phone: "" });
 
   const fetchExpenses = async () => {
     const { data, error } = await supabase.from("expenses").select("*").order("date", { ascending: false });
