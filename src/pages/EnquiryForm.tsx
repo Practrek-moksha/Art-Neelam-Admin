@@ -14,9 +14,25 @@ export default function EnquiryForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showQR, setShowQR] = useState(false);
-  const [form, setForm] = useState({
-    name: "", phone: "", email: "", course: "Basic", source: "Website", notes: "",
+  const [form, setForm] = useState(() => {
+    try {
+      const saved = localStorage.getItem("enquiry_form_draft");
+      if (saved) {
+        const { data, expiry } = JSON.parse(saved);
+        if (expiry && Date.now() < expiry) return { ...{ name: "", phone: "", email: "", course: "Basic", source: "Website", notes: "" }, ...data };
+        localStorage.removeItem("enquiry_form_draft");
+      }
+    } catch {}
+    return { name: "", phone: "", email: "", course: "Basic", source: "Website", notes: "" };
   });
+
+  // Auto-save form draft to localStorage (24h expiry)
+  useEffect(() => {
+    const hasData = form.name || form.phone || form.email;
+    if (hasData) {
+      localStorage.setItem("enquiry_form_draft", JSON.stringify({ data: form, expiry: Date.now() + 24 * 60 * 60 * 1000 }));
+    }
+  }, [form]);
 
   const enquiryUrl = typeof window !== "undefined" ? `${window.location.origin}/enquiry` : "";
 

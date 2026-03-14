@@ -27,12 +27,30 @@ export default function RegisterForm() {
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    name: "", dob: "", schoolName: "", address: "", emergencyContact: "",
-    fatherName: "", fatherContact: "", motherName: "", motherContact: "",
-    guardianName: "", whatsapp: "", email: "", course: "Basic",
-    batch: BATCHES[2], agreedTerms: false, paymentPlan: "Full Payment",
+  const [form, setForm] = useState(() => {
+    try {
+      const saved = localStorage.getItem("register_form_draft");
+      if (saved) {
+        const { data, expiry } = JSON.parse(saved);
+        if (expiry && Date.now() < expiry) return { ...{ name: "", dob: "", schoolName: "", address: "", emergencyContact: "", fatherName: "", fatherContact: "", motherName: "", motherContact: "", guardianName: "", whatsapp: "", email: "", course: "Basic", batch: BATCHES[2], agreedTerms: false, paymentPlan: "Full Payment" }, ...data };
+        localStorage.removeItem("register_form_draft");
+      }
+    } catch {}
+    return {
+      name: "", dob: "", schoolName: "", address: "", emergencyContact: "",
+      fatherName: "", fatherContact: "", motherName: "", motherContact: "",
+      guardianName: "", whatsapp: "", email: "", course: "Basic",
+      batch: BATCHES[2], agreedTerms: false, paymentPlan: "Full Payment",
+    };
   });
+
+  // Auto-save form draft to localStorage (24h expiry)
+  useEffect(() => {
+    const hasData = form.name || form.whatsapp || form.email;
+    if (hasData) {
+      localStorage.setItem("register_form_draft", JSON.stringify({ data: form, expiry: Date.now() + 24 * 60 * 60 * 1000 }));
+    }
+  }, [form]);
 
   const registrationUrl = typeof window !== "undefined"
     ? `${window.location.origin}/register`
