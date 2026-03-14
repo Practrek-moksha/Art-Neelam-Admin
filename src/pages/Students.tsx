@@ -90,11 +90,14 @@ export default function Students() {
 
   useEffect(() => { fetchStudents(); }, []);
 
+  const [courseFilter, setCourseFilter] = useState("All");
+
   const filtered = students.filter(s => {
     const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.roll_number.toLowerCase().includes(search.toLowerCase());
     const matchBatch = batchFilter === "All" || s.batch === batchFilter;
-    return matchSearch && matchBatch;
+    const matchCourse = courseFilter === "All" || s.course === courseFilter;
+    return matchSearch && matchBatch && matchCourse;
   });
 
   const discountVal = form.discount_percent > 0
