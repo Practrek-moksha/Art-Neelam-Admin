@@ -55,6 +55,28 @@ export default function Students() {
   };
 
   const [form, setForm] = useState(defaultForm);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1024 * 1024) { toast.error("Photo must be under 1MB"); return; }
+    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const uploadPhoto = async (studentId: string): Promise<string | null> => {
+    if (!photoFile) return null;
+    const ext = photoFile.name.split(".").pop();
+    const path = `${studentId}.${ext}`;
+    const { error } = await supabase.storage.from("student-photos").upload(path, photoFile, { upsert: true });
+    if (error) { console.error(error); return null; }
+    const { data } = supabase.storage.from("student-photos").getPublicUrl(path);
+    return data.publicUrl;
+  };
 
   useEffect(() => {
     const state = location.state as any;
