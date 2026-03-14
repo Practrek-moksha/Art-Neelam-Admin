@@ -33,7 +33,7 @@ export default function ParentPortal() {
   const [showInvoice, setShowInvoice] = useState<any>(null);
   const [showIDCard, setShowIDCard] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
-  const [activeTab, setActiveTab] = useState<"summary" | "fees" | "id-card" | "certificate">("summary");
+  const [activeTab, setActiveTab] = useState<"summary" | "attendance" | "fees" | "id-card" | "certificate">("summary");
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
