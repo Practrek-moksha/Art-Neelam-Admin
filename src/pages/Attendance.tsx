@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { BATCHES } from "@/data/dummy";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, Send, Save, CheckCircle, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Send, Save, CheckCircle, Calendar as CalendarIcon, Search } from "lucide-react";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -28,6 +28,7 @@ export default function Attendance() {
   const [pendingChanges, setPendingChanges] = useState<Record<string, Status>>({});
   const [saving, setSaving] = useState(false);
   const [showView, setShowView] = useState<"daily" | "month" | "calendar">("daily");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -63,7 +64,6 @@ export default function Attendance() {
   const markLocal = (studentId: string, status: Status) => {
     const student = students.find(s => s.id === studentId);
     if (!student) return;
-    // Check session limit for present marking
     if (status === "present") {
       const used = getSessionsUsed(studentId);
       const existingOnDate = records.find(r => r.student_id === studentId && r.date === selectedDate);
@@ -123,25 +123,22 @@ export default function Attendance() {
       }
       setRecords(updatedRecords);
 
-      // Auto-flag inactive after 4 consecutive absents OR graduate if all sessions done + fees paid
       for (const studentId of Object.keys(pendingChanges)) {
         if (checkConsecutiveAbsents(studentId, updatedRecords)) {
           const student = students.find(s => s.id === studentId);
           await supabase.from("students").update({ status: "inactive" }).eq("id", studentId);
           if (student) toast.warning(`${student.name} marked inactive (4+ consecutive absences)`);
         } else {
-          // Check if student completed all sessions
           const student = students.find(s => s.id === studentId);
           if (student) {
             const sessionsUsed = updatedRecords.filter(r => r.student_id === studentId && r.status === "present").length;
             if (sessionsUsed >= student.total_sessions) {
-              // Check if fees fully paid
               const { data: pmts } = await supabase.from("payments").select("amount, status").eq("student_id", studentId);
               const totalPaid = (pmts || []).filter((p: any) => p.status === "paid").reduce((s: number, p: any) => s + p.amount, 0);
               const { data: stData } = await supabase.from("students").select("fee_amount, status").eq("id", studentId).single();
               if (stData && totalPaid >= stData.fee_amount && stData.status !== "graduated") {
                 await supabase.from("students").update({ status: "graduated" }).eq("id", studentId);
-                toast.success(`🎓 ${student.name} has graduated! All sessions & fees complete.`);
+                toast.success(`🎓 ${student.name} has graduated!`);
               }
             }
           }
@@ -171,12 +168,15 @@ export default function Attendance() {
     openWhatsApp(student.whatsapp, templates.attendanceAlert(student.name, dateStr, status));
   };
 
-  const filteredStudents = students.filter(s => selectedBatch === "All" || s.batch === selectedBatch);
+  const batchFiltered = students.filter(s => selectedBatch === "All" || s.batch === selectedBatch);
+  const filteredStudents = batchFiltered.filter(s =>
+    s.name.toLowerCase().includes(search.toLowerCase()) ||
+    s.roll_number.toLowerCase().includes(search.toLowerCase())
+  );
   const presentCount = filteredStudents.filter(s => getStatus(s.id) === "present").length;
   const absentCount = filteredStudents.filter(s => getStatus(s.id) === "absent").length;
   const hasChanges = Object.keys(pendingChanges).length > 0;
 
-  // Month summary
   const selectedMonth = selectedDate.slice(0, 7);
   const monthRecords = records.filter(r => r.date.startsWith(selectedMonth));
 
@@ -192,7 +192,6 @@ export default function Attendance() {
     return summary;
   }, [filteredStudents, monthRecords]);
 
-  // Calendar data
   const calendarDays = useMemo(() => {
     const year = parseInt(selectedDate.slice(0, 4));
     const month = parseInt(selectedDate.slice(5, 7)) - 1;
@@ -226,6 +225,13 @@ export default function Attendance() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search student..."
+          className="w-full pl-9 pr-3 py-2.5 bg-card border border-border rounded-xl text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
       </div>
 
       {/* Date Picker */}
@@ -263,14 +269,13 @@ export default function Attendance() {
           <button key={b} onClick={() => setSelectedBatch(b)}
             className={cn("flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold font-body transition-all",
               selectedBatch === b ? "gradient-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:border-primary hover:text-primary")}>
-            {b.split(" (")[0]}
+            {b === "All" ? "All" : b}
           </button>
         ))}
       </div>
 
       {showView === "daily" && (
         <>
-          {/* Quick Mark All + Save */}
           <div className="flex gap-2 flex-wrap">
             {(["present", "absent", "bank_holiday", "class_holiday"] as Status[]).map(s => (
               <button key={s} onClick={() => markAllLocal(s)}
@@ -293,7 +298,6 @@ export default function Attendance() {
             </button>
           </div>
 
-          {/* Student List */}
           <div className="space-y-2">
             {filteredStudents.map(student => {
               const status = getStatus(student.id);
@@ -313,7 +317,7 @@ export default function Attendance() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold font-body text-foreground">{student.name}</p>
                       <p className="text-[10px] text-muted-foreground font-body">
-                        {student.roll_number} • {student.batch.split(" (")[0]} • <span className={sessionsLeft <= 3 ? "text-destructive font-semibold" : ""}>{sessionsLeft} left</span>
+                        {student.roll_number} • {student.batch} • <span className={sessionsLeft <= 3 ? "text-destructive font-semibold" : ""}>{sessionsLeft} left</span>
                       </p>
                     </div>
                     <div className="flex gap-1.5">
@@ -346,31 +350,39 @@ export default function Attendance() {
         <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden">
           <div className="px-4 py-3 border-b border-border">
             <h3 className="font-display font-bold text-foreground text-sm">
-              {new Date(selectedDate).toLocaleDateString("en-IN", { month: "long", year: "numeric" })} Summary
+              Monthly Summary — {new Date(selectedDate).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
             </h3>
           </div>
-          <div className="divide-y divide-border">
-            {filteredStudents.map(s => {
-              const data = monthSummary[s.id] || { present: 0, absent: 0, total: 0 };
-              const pct = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
-              return (
-                <div key={s.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="w-9 h-9 rounded-xl bg-primary-soft flex items-center justify-center font-display font-bold text-primary text-sm">{s.name[0]}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold font-body text-foreground truncate">{s.name}</p>
-                    <p className="text-[10px] text-muted-foreground font-body">{s.roll_number}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold text-green-700 font-body">{data.present}P</span>
-                    <span className="text-xs font-semibold text-red-700 font-body">{data.absent}A</span>
-                    <div className="w-16 bg-muted rounded-full h-2 overflow-hidden">
-                      <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
-                    </div>
-                    <span className="text-[10px] font-bold text-foreground font-body w-8">{pct}%</span>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs font-body">
+              <thead>
+                <tr className="bg-muted">
+                  <th className="text-left px-3 py-2 text-muted-foreground font-semibold">Student</th>
+                  <th className="text-center px-2 py-2 text-green-700 font-semibold">P</th>
+                  <th className="text-center px-2 py-2 text-red-700 font-semibold">A</th>
+                  <th className="text-center px-2 py-2 text-muted-foreground font-semibold">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredStudents.map(s => {
+                  const ms = monthSummary[s.id] || { present: 0, absent: 0, total: s.total_sessions };
+                  const pct = (ms.present + ms.absent) > 0 ? Math.round((ms.present / (ms.present + ms.absent)) * 100) : 0;
+                  return (
+                    <tr key={s.id} className="border-b border-border hover:bg-muted/50">
+                      <td className="px-3 py-2 text-foreground font-semibold">{s.name}</td>
+                      <td className="text-center px-2 py-2 text-green-700 font-semibold">{ms.present}</td>
+                      <td className="text-center px-2 py-2 text-red-700 font-semibold">{ms.absent}</td>
+                      <td className="text-center px-2 py-2">
+                        <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                          pct >= 75 ? "bg-accent text-accent-foreground" : "bg-red-50 text-red-700")}>
+                          {pct}%
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -382,23 +394,22 @@ export default function Attendance() {
             {new Date(selectedDate).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
           </h3>
           <div className="grid grid-cols-7 gap-1 text-center">
-            {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(d => (
-              <div key={d} className="text-[10px] font-semibold text-muted-foreground font-body py-1">{d}</div>
+            {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+              <div key={i} className="text-[10px] font-semibold text-muted-foreground font-body py-1">{d}</div>
             ))}
-            {Array(calendarDays.firstDay).fill(null).map((_, i) => <div key={`e${i}`} />)}
+            {Array.from({ length: calendarDays.firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
             {calendarDays.days.map(day => (
               <button key={day.date} onClick={() => { setSelectedDate(day.date); setShowView("daily"); setPendingChanges({}); }}
-                className={cn("rounded-lg p-1 transition-all text-center",
-                  day.date === selectedDate ? "ring-2 ring-primary bg-primary-soft" :
-                  day.holiday ? "bg-blue-50" : "hover:bg-muted")}>
-                <p className="text-xs font-bold text-foreground font-body">{day.day}</p>
+                className={cn("aspect-square rounded-lg text-xs font-body flex flex-col items-center justify-center gap-0.5 transition-all hover:ring-1 hover:ring-primary/30",
+                  day.date === selectedDate ? "bg-primary text-primary-foreground" :
+                  day.holiday ? "bg-blue-50" : day.present > 0 ? "bg-accent/50" : "bg-card")}>
+                <span className="font-semibold">{day.day}</span>
                 {(day.present > 0 || day.absent > 0) && (
-                  <div className="flex justify-center gap-0.5 mt-0.5">
-                    {day.present > 0 && <span className="text-[8px] text-green-600 font-bold">{day.present}</span>}
-                    {day.absent > 0 && <span className="text-[8px] text-red-600 font-bold">{day.absent}</span>}
+                  <div className="flex gap-0.5">
+                    {day.present > 0 && <div className="w-1 h-1 rounded-full bg-green-500" />}
+                    {day.absent > 0 && <div className="w-1 h-1 rounded-full bg-red-500" />}
                   </div>
                 )}
-                {day.holiday && <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mx-auto mt-0.5" />}
               </button>
             ))}
           </div>

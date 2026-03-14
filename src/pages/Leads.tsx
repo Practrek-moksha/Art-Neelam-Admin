@@ -60,6 +60,9 @@ export default function Leads() {
     : sourceFilter === "auto" ? leads.filter(l => autoSources.includes(l.source || ""))
     : leads.filter(l => !autoSources.includes(l.source || ""));
 
+  // Pending registrations (from Registration Form source, not yet converted)
+  const pendingRegistrations = leads.filter(l => l.source === "Registration Form" && l.status !== "converted");
+
   const moveCard = async (leadId: string, toStatus: LeadStatus) => {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: toStatus } : l));
     const { error } = await supabase.from("leads").update({ status: toStatus }).eq("id", leadId);
@@ -91,7 +94,7 @@ export default function Leads() {
 
   const convertToStudent = (lead: Lead) => {
     navigate("/students", {
-      state: { prefill: { name: lead.name, whatsapp: lead.phone || "", email: lead.email || "", course: lead.course || "Basic", notes: lead.notes || "", source: lead.source || "" } },
+      state: { prefill: { name: lead.name, whatsapp: lead.phone || "", email: lead.email || "", course: lead.course || "Basic", notes: lead.notes || "", source: lead.source || "", leadId: lead.id } },
     });
   };
 
@@ -112,6 +115,7 @@ export default function Leads() {
   };
 
   const getScore = (id: string) => scores.find(s => s.id === id);
+  const isConverted = (lead: Lead) => lead.status === "converted";
 
   if (loading) return <div className="p-6 flex justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
@@ -147,7 +151,7 @@ export default function Leads() {
         </div>
       </div>
 
-      {/* Source Filter: All / Auto (Website) / Manual */}
+      {/* Source Filter */}
       <div className="flex gap-2">
         {([
           { key: "all", label: "All Leads", icon: Filter },
@@ -161,6 +165,27 @@ export default function Leads() {
           </button>
         ))}
       </div>
+
+      {/* Pending Registrations Banner */}
+      {pendingRegistrations.length > 0 && (
+        <div className="bg-warm rounded-2xl p-3 border border-warm-vivid/30">
+          <p className="text-xs font-bold text-warm-foreground font-body mb-2">📝 Pending Registrations ({pendingRegistrations.length})</p>
+          <div className="space-y-1.5">
+            {pendingRegistrations.slice(0, 5).map(lead => (
+              <div key={lead.id} className="flex items-center justify-between bg-card rounded-xl px-3 py-2">
+                <div>
+                  <p className="text-xs font-semibold text-foreground font-body">{lead.name}</p>
+                  <p className="text-[10px] text-muted-foreground font-body">{lead.phone} • {lead.course} • {new Date(lead.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p>
+                </div>
+                <button onClick={() => convertToStudent(lead)}
+                  className="flex items-center gap-1 px-2 py-1 bg-primary-soft text-primary rounded-lg text-[10px] font-semibold hover:opacity-80">
+                  <UserPlus className="w-3 h-3" /> Convert
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Add Lead Modal */}
       {showForm && (
@@ -232,6 +257,7 @@ export default function Leads() {
                 <div className="space-y-2">
                   {colLeads.map(lead => {
                     const sc = getScore(lead.id);
+                    const converted = isConverted(lead);
                     return (
                       <div key={lead.id} draggable onDragStart={() => setDragging(lead.id)} onDragEnd={() => { setDragging(null); setDragOver(null); }}
                         className={cn("bg-card rounded-xl p-3 shadow-sm cursor-grab active:cursor-grabbing transition-all", dragging === lead.id && "opacity-50 rotate-2")}>
@@ -258,32 +284,42 @@ export default function Leads() {
                         {lead.follow_up_date && (
                           <p className="text-[10px] text-primary font-semibold mb-2 font-body">📅 {new Date(lead.follow_up_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p>
                         )}
-                        <div className="flex gap-1.5">
-                          <a href={`tel:${lead.phone}`} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80">
-                            <Phone className="w-3 h-3" /> Call
-                          </a>
-                          <button onClick={() => lead.phone && openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course || ""))} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80">
-                            <MessageCircle className="w-3 h-3" /> WA
-                          </button>
-                        </div>
-                        <button onClick={() => convertToStudent(lead)}
-                          className="w-full mt-1.5 flex items-center justify-center gap-1 py-1.5 bg-primary-soft text-primary rounded-lg text-[10px] font-semibold hover:opacity-80">
-                          <UserPlus className="w-3 h-3" /> Convert to Student
-                        </button>
-                        {/* All status move buttons including Not Interested */}
-                        <div className="flex gap-1 mt-1.5 flex-wrap">
-                          {columns.filter(c => c.key !== col.key).map(c => (
-                            <button key={c.key} onClick={() => moveCard(lead.id, c.key)}
-                              className={cn("flex-1 text-[9px] py-1 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 font-body min-w-0",
-                                c.key === "not-interested" && "text-red-600")}>
-                              {c.key === "not-interested" ? "✕ Not Int." : `→ ${c.label}`}
+
+                        {/* Actions: hide convert/status buttons for already-converted leads */}
+                        {!converted && (
+                          <>
+                            <div className="flex gap-1.5">
+                              <a href={`tel:${lead.phone}`} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80">
+                                <Phone className="w-3 h-3" /> Call
+                              </a>
+                              <button onClick={() => lead.phone && openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course || ""))} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-accent rounded-lg text-accent-foreground text-[10px] font-semibold hover:opacity-80">
+                                <MessageCircle className="w-3 h-3" /> WA
+                              </button>
+                            </div>
+                            <button onClick={() => convertToStudent(lead)}
+                              className="w-full mt-1.5 flex items-center justify-center gap-1 py-1.5 bg-primary-soft text-primary rounded-lg text-[10px] font-semibold hover:opacity-80">
+                              <UserPlus className="w-3 h-3" /> Convert to Student
                             </button>
-                          ))}
-                        </div>
-                        <button onClick={() => deleteLead(lead.id)}
-                          className="w-full mt-1 flex items-center justify-center gap-1 py-1 text-[9px] text-destructive hover:bg-destructive/10 rounded-lg font-body">
-                          <Trash2 className="w-3 h-3" /> Delete
-                        </button>
+                            <div className="flex gap-1 mt-1.5 flex-wrap">
+                              {columns.filter(c => c.key !== col.key && c.key !== "converted").map(c => (
+                                <button key={c.key} onClick={() => moveCard(lead.id, c.key)}
+                                  className={cn("flex-1 text-[9px] py-1 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 font-body min-w-0",
+                                    c.key === "not-interested" && "text-red-600")}>
+                                  {c.key === "not-interested" ? "✕ Not Int." : `→ ${c.label}`}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                        {converted && (
+                          <p className="text-[10px] text-accent-foreground font-semibold bg-accent rounded-lg px-2 py-1 text-center mt-1">✓ Converted to Student</p>
+                        )}
+                        {!converted && (
+                          <button onClick={() => deleteLead(lead.id)}
+                            className="w-full mt-1 flex items-center justify-center gap-1 py-1 text-[9px] text-destructive hover:bg-destructive/10 rounded-lg font-body">
+                            <Trash2 className="w-3 h-3" /> Delete
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -301,6 +337,7 @@ export default function Leads() {
           <div className="divide-y divide-border">
             {filteredBySource.map(lead => {
               const sc = getScore(lead.id);
+              const converted = isConverted(lead);
               return (
                 <div key={lead.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
                   <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center font-display font-bold text-secondary-foreground flex-shrink-0">
@@ -321,22 +358,28 @@ export default function Leads() {
                       lead.status === "not-interested" ? "bg-muted text-muted-foreground" :
                       "bg-warm text-warm-foreground"
                     }`}>{lead.status}</span>
-                    {lead.status !== "not-interested" && (
+                    {!converted && lead.status !== "not-interested" && (
                       <button onClick={() => moveCard(lead.id, "not-interested")}
                         className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="Mark Not Interested">
                         <ThumbsDown className="w-4 h-4 text-destructive" />
                       </button>
                     )}
-                    <button onClick={() => convertToStudent(lead)}
-                      className="p-1.5 rounded-lg hover:bg-primary-soft transition-colors" title="Convert to Student">
-                      <UserPlus className="w-4 h-4 text-primary" />
-                    </button>
-                    <button onClick={() => lead.phone && openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course || ""))} className="p-1.5 rounded-lg hover:bg-accent transition-colors">
-                      <MessageCircle className="w-4 h-4 text-accent-vivid" />
-                    </button>
-                    <button onClick={() => deleteLead(lead.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors">
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </button>
+                    {!converted && (
+                      <button onClick={() => convertToStudent(lead)}
+                        className="p-1.5 rounded-lg hover:bg-primary-soft transition-colors" title="Convert to Student">
+                        <UserPlus className="w-4 h-4 text-primary" />
+                      </button>
+                    )}
+                    {!converted && (
+                      <button onClick={() => lead.phone && openWhatsApp(lead.phone, templates.followUp(lead.name, lead.course || ""))} className="p-1.5 rounded-lg hover:bg-accent transition-colors">
+                        <MessageCircle className="w-4 h-4 text-accent-vivid" />
+                      </button>
+                    )}
+                    {!converted && (
+                      <button onClick={() => deleteLead(lead.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors">
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );

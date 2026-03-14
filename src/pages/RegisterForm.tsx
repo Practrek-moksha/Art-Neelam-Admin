@@ -1,15 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Palette, CheckCircle, QrCode, FileText, X } from "lucide-react";
+import { Palette, CheckCircle, QrCode, FileText, X, Camera } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import logoImg from "@/assets/logo.png";
-
-const BATCHES = [
-  "Professional (10:00 AM - 11:30 AM)",
-  "Advance + Basic (11:30 AM - 1:00 PM)",
-  "Basic 1 (1:00 PM - 2:30 PM)",
-  "Basic 2 (2:30 PM - 4:00 PM)",
-];
+import { BATCHES } from "@/data/dummy";
 
 const COURSE_FEES: Record<string, { fee: number; sessions: number; ages: string }> = {
   Basic: { fee: 9000, sessions: 36, ages: "Ages 4–7" },
@@ -30,6 +24,9 @@ export default function RegisterForm() {
   const [showQR, setShowQR] = useState(false);
   const [showPDF, setShowPDF] = useState(false);
   const [rollNumber, setRollNumber] = useState("");
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "", dob: "", schoolName: "", address: "", emergencyContact: "",
     fatherName: "", fatherContact: "", motherName: "", motherContact: "",
@@ -43,6 +40,20 @@ export default function RegisterForm() {
 
   const selectedCourse = COURSE_FEES[form.course];
 
+  // Check if student already registered by phone number
+  const checkExisting = async (phone: string) => {
+    const cleaned = phone.replace(/[\s\-()]/g, "").replace(/^\+91/, "");
+    if (cleaned.length < 10) return;
+    const { data } = await supabase.from("students").select("id, name").eq("whatsapp", cleaned).maybeSingle();
+    if (data) {
+      setAlreadyRegistered(true);
+      setError(`Student "${data.name}" is already registered with this number.`);
+    } else {
+      setAlreadyRegistered(false);
+      if (error.includes("already registered")) setError("");
+    }
+  };
+
   const validatePhone = (phone: string) => {
     if (!phone) { setPhoneError("WhatsApp number is required"); return false; }
     if (!isValidIndianPhone(phone)) { setPhoneError("Enter a valid 10-digit Indian number (starting with 6-9)"); return false; }
@@ -50,9 +61,20 @@ export default function RegisterForm() {
     return true;
   };
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1 * 1024 * 1024) {
+      setError("Photo must be less than 1 MB");
+      return;
+    }
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.agreedTerms) return;
+    if (!form.name || !form.agreedTerms || alreadyRegistered) return;
     if (!validatePhone(form.whatsapp)) return;
 
     setLoading(true);
@@ -104,7 +126,7 @@ export default function RegisterForm() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center max-w-sm animate-fade-in">
           <div className="w-20 h-20 rounded-full bg-accent flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-10 h-10 text-accent-vivid" />
@@ -132,8 +154,8 @@ export default function RegisterForm() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="gradient-primary px-5 py-6 pt-safe">
-        <div className="flex items-center justify-between">
+      <div className="gradient-primary px-4 py-5 pt-safe">
+        <div className="flex items-center justify-between max-w-lg mx-auto">
           <div className="flex items-center gap-3">
             <img src={logoImg} alt="Art Neelam" className="w-10 h-10 rounded-xl object-contain bg-primary-foreground/20 p-1" />
             <div>
@@ -147,28 +169,55 @@ export default function RegisterForm() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-5 space-y-6 max-w-lg mx-auto pb-10">
+      <form onSubmit={handleSubmit} className="p-4 space-y-4 max-w-lg mx-auto pb-10">
         <FormSection title="Personal Information">
           <Field label="Student Name*" type="text" value={form.name} onChange={v => setForm(p => ({ ...p, name: v }))} placeholder="Full name" required />
           <Field label="Date of Birth*" type="date" value={form.dob} onChange={v => setForm(p => ({ ...p, dob: v }))} required />
+          
+          {/* Photo Upload */}
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground font-body">Student Photo (max 1 MB)</label>
+            <div className="flex items-center gap-3 mt-1">
+              {photoPreview ? (
+                <div className="w-16 h-16 rounded-xl overflow-hidden border border-border">
+                  <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-16 h-16 rounded-xl bg-muted border border-border flex items-center justify-center">
+                  <Camera className="w-5 h-5 text-muted-foreground" />
+                </div>
+              )}
+              <label className="flex-1 cursor-pointer">
+                <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                <span className="inline-block px-3 py-2 bg-muted rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:border-primary/50">
+                  {photoPreview ? "Change Photo" : "Upload Photo"}
+                </span>
+              </label>
+            </div>
+          </div>
+          
           <Field label="School Name" type="text" value={form.schoolName} onChange={v => setForm(p => ({ ...p, schoolName: v }))} placeholder="Current school" />
           <Field label="Address" type="text" value={form.address} onChange={v => setForm(p => ({ ...p, address: v }))} placeholder="Home address" textarea />
           <Field label="Emergency Contact" type="tel" value={form.emergencyContact} onChange={v => setForm(p => ({ ...p, emergencyContact: v }))} placeholder="Emergency phone" />
         </FormSection>
 
         <FormSection title="Parent / Guardian Details">
-          <Field label="Father's Name" type="text" value={form.fatherName} onChange={v => setForm(p => ({ ...p, fatherName: v }))} placeholder="Father's full name" />
-          <Field label="Father's Contact" type="tel" value={form.fatherContact} onChange={v => setForm(p => ({ ...p, fatherContact: v }))} placeholder="Father's phone" />
-          <Field label="Mother's Name" type="text" value={form.motherName} onChange={v => setForm(p => ({ ...p, motherName: v }))} placeholder="Mother's full name" />
-          <Field label="Mother's Contact" type="tel" value={form.motherContact} onChange={v => setForm(p => ({ ...p, motherContact: v }))} placeholder="Mother's phone" />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Father's Name" type="text" value={form.fatherName} onChange={v => setForm(p => ({ ...p, fatherName: v }))} placeholder="Father's name" />
+            <Field label="Father's Contact" type="tel" value={form.fatherContact} onChange={v => setForm(p => ({ ...p, fatherContact: v }))} placeholder="Father's phone" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Mother's Name" type="text" value={form.motherName} onChange={v => setForm(p => ({ ...p, motherName: v }))} placeholder="Mother's name" />
+            <Field label="Mother's Contact" type="tel" value={form.motherContact} onChange={v => setForm(p => ({ ...p, motherContact: v }))} placeholder="Mother's phone" />
+          </div>
           <Field label="Guardian Name (Optional)" type="text" value={form.guardianName} onChange={v => setForm(p => ({ ...p, guardianName: v }))} placeholder="If applicable" />
           <div>
             <label className="text-xs font-semibold text-muted-foreground font-body">WhatsApp Number*</label>
             <input type="tel" value={form.whatsapp}
               onChange={e => { setForm(p => ({ ...p, whatsapp: e.target.value })); if (phoneError) validatePhone(e.target.value); }}
-              onBlur={() => form.whatsapp && validatePhone(form.whatsapp)}
+              onBlur={() => { if (form.whatsapp) { validatePhone(form.whatsapp); checkExisting(form.whatsapp); } }}
               placeholder="e.g. 9920546217" required
-              className={`w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30 ${phoneError ? "border-destructive" : "border-border"}`}
+              className={`w-full mt-1 px-3 py-2 bg-muted rounded-xl border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30 ${phoneError ? "border-destructive" : "border-border"}`}
             />
             {phoneError && <p className="text-xs text-destructive font-body mt-1">{phoneError}</p>}
           </div>
@@ -197,22 +246,22 @@ export default function RegisterForm() {
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold text-muted-foreground font-body">Preferred Batch*</label>
+            <label className="text-xs font-semibold text-muted-foreground font-body">Preferred Batch Timing*</label>
             <select value={form.batch} onChange={e => setForm(p => ({ ...p, batch: e.target.value }))}
-              className="w-full mt-1 px-3 py-2.5 bg-card border border-border rounded-xl text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
+              className="w-full mt-1 px-3 py-2 bg-card border border-border rounded-xl text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
               {BATCHES.map(b => <option key={b}>{b}</option>)}
             </select>
           </div>
           <div>
             <label className="text-xs font-semibold text-muted-foreground font-body">Payment Plan*</label>
             <select value={form.paymentPlan} onChange={e => setForm(p => ({ ...p, paymentPlan: e.target.value }))}
-              className="w-full mt-1 px-3 py-2.5 bg-card border border-border rounded-xl text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
+              className="w-full mt-1 px-3 py-2 bg-card border border-border rounded-xl text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
               <option value="Full Payment">Full Payment</option>
               <option value="50-30-20 Installment">50-30-20 Installment</option>
               <option value="50-50 Custom">50-50 Custom</option>
             </select>
           </div>
-          {/* Installment Preview */}
+          {/* Fee Preview */}
           <div className="bg-muted rounded-xl p-3">
             <p className="text-xs font-bold text-foreground font-body mb-2">💰 Fee Structure</p>
             <div className="space-y-1 text-[11px] font-body">
@@ -221,15 +270,15 @@ export default function RegisterForm() {
               )}
               {form.paymentPlan === "50-30-20 Installment" && (
                 <>
-                  <div className="flex justify-between"><span className="text-muted-foreground">1st (at enrollment) — 50%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.5).toLocaleString()}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">2nd — 30%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.3).toLocaleString()}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">3rd — 20%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.2).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">1st (50%)</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.5).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">2nd (30%)</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.3).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">3rd (20%)</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.2).toLocaleString()}</span></div>
                 </>
               )}
               {form.paymentPlan === "50-50 Custom" && (
                 <>
-                  <div className="flex justify-between"><span className="text-muted-foreground">1st (at enrollment) — 50%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.5).toLocaleString()}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">2nd — 50%</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.5).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">1st (50%)</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.5).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">2nd (50%)</span><span className="font-semibold text-foreground">₹{Math.round(selectedCourse.fee * 0.5).toLocaleString()}</span></div>
                 </>
               )}
               <div className="flex justify-between border-t border-border pt-1 mt-1"><span className="font-bold text-foreground">Total</span><span className="font-bold text-primary">₹{selectedCourse.fee.toLocaleString()}</span></div>
@@ -262,8 +311,8 @@ export default function RegisterForm() {
 
         {error && <p className="text-xs text-destructive font-body bg-destructive/10 px-3 py-2 rounded-lg">{error}</p>}
 
-        <button type="submit" disabled={!form.agreedTerms || !form.name || !form.whatsapp || loading}
-          className="w-full py-4 rounded-2xl gradient-primary text-primary-foreground font-bold font-body text-base shadow-active hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
+        <button type="submit" disabled={!form.agreedTerms || !form.name || !form.whatsapp || loading || alreadyRegistered}
+          className="w-full py-3.5 rounded-2xl gradient-primary text-primary-foreground font-bold font-body text-base shadow-active hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
           {loading ? "Submitting..." : "Submit Registration"}
         </button>
       </form>
@@ -310,10 +359,10 @@ export default function RegisterForm() {
 function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-card rounded-2xl border border-border shadow-card overflow-hidden">
-      <div className="px-4 py-3 bg-primary-soft border-b border-border">
+      <div className="px-4 py-2.5 bg-primary-soft border-b border-border">
         <h3 className="font-display font-bold text-primary text-sm">{title}</h3>
       </div>
-      <div className="p-4 space-y-3">{children}</div>
+      <div className="p-3 space-y-3">{children}</div>
     </div>
   );
 }
@@ -327,10 +376,10 @@ function Field({ label, type, value, onChange, placeholder, required, textarea }
       <label className="text-xs font-semibold text-muted-foreground font-body">{label}</label>
       {textarea ? (
         <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required={required} rows={2}
-          className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
+          className="w-full mt-1 px-3 py-2 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
       ) : (
         <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required={required}
-          className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          className="w-full mt-1 px-3 py-2 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
       )}
     </div>
   );
