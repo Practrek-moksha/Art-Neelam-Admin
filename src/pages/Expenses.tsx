@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { EXPENSE_CATEGORIES } from "@/data/dummy";
-import { Plus, Receipt, X } from "lucide-react";
+import { Plus, Receipt, X, MessageCircle } from "lucide-react";
+import { openWhatsApp } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-type ExpenseRow = { id: string; category: string; description: string | null; amount: number; date: string; method: string | null };
+type ExpenseRow = { id: string; category: string; description: string | null; amount: number; date: string; method: string | null; phone: string | null };
 
 const catColors: Record<string, string> = {
   "Art Supplies": "bg-primary-soft text-primary",
@@ -22,7 +23,7 @@ export default function Expenses() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
-  const [form, setForm] = useState({ category: "Art Supplies", description: "", amount: "", method: "UPI", date: new Date().toISOString().slice(0, 10) });
+  const [form, setForm] = useState({ category: "Art Supplies", description: "", amount: "", method: "UPI", date: new Date().toISOString().slice(0, 10), phone: "" });
 
   const fetchExpenses = async () => {
     const { data, error } = await supabase.from("expenses").select("*").order("date", { ascending: false });
@@ -46,12 +47,12 @@ export default function Expenses() {
   const addExpense = async () => {
     if (!form.description || !form.amount) return;
     const { error } = await supabase.from("expenses").insert({
-      category: form.category, description: form.description, amount: Number(form.amount), method: form.method, date: form.date,
+      category: form.category, description: form.description, amount: Number(form.amount), method: form.method, date: form.date, phone: form.phone || null,
     });
     if (error) { toast.error("Failed to add expense: " + error.message); return; }
     toast.success("Expense added!");
     setShowForm(false);
-    setForm({ category: "Art Supplies", description: "", amount: "", method: "UPI", date: new Date().toISOString().slice(0, 10) });
+    setForm({ category: "Art Supplies", description: "", amount: "", method: "UPI", date: new Date().toISOString().slice(0, 10), phone: "" });
     fetchExpenses();
   };
 
@@ -119,7 +120,15 @@ export default function Expenses() {
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold font-body mt-1 inline-block ${catColors[e.category] || "bg-muted text-muted-foreground"}`}>{e.category}</span>
                 </div>
               </div>
-              <p className="font-display font-bold text-foreground text-lg">₹{e.amount.toLocaleString()}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-display font-bold text-foreground text-lg">₹{e.amount.toLocaleString()}</p>
+                {e.phone && (
+                  <button onClick={() => openWhatsApp(e.phone!, `Hi! Regarding expense: ${e.description} — ₹${e.amount.toLocaleString()} on ${new Date(e.date).toLocaleDateString("en-IN")}.`)}
+                    className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center hover:bg-green-200 transition-colors">
+                    <MessageCircle className="w-4 h-4 text-green-600" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -164,6 +173,11 @@ export default function Expenses() {
                   className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
                   {["UPI", "Cash", "Bank Transfer", "Cheque"].map(m => <option key={m}>{m}</option>)}
                 </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground font-body">Phone (optional)</label>
+                <input type="tel" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="e.g. 9876543210"
+                  className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
             </div>
             <div className="flex gap-3 mt-5">

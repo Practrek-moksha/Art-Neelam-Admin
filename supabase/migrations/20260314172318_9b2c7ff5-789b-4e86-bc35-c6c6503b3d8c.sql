@@ -1,0 +1,1 @@
+ALTER TABLE public.expenses ADD COLUMN phone text DEFAULT NULL;

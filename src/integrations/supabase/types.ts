@@ -58,6 +58,7 @@ export type Database = {
           description: string | null
           id: string
           method: string | null
+          phone: string | null
           receipt_url: string | null
         }
         Insert: {
@@ -68,6 +69,7 @@ export type Database = {
           description?: string | null
           id?: string
           method?: string | null
+          phone?: string | null
           receipt_url?: string | null
         }
         Update: {
@@ -78,6 +80,7 @@ export type Database = {
           description?: string | null
           id?: string
           method?: string | null
+          phone?: string | null
           receipt_url?: string | null
         }
         Relationships: []
