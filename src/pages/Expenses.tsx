@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { EXPENSE_CATEGORIES } from "@/data/dummy";
-import { Plus, Receipt, X } from "lucide-react";
+import { Plus, Receipt, X, MessageCircle } from "lucide-react";
+import { openWhatsApp } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
