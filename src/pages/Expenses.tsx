@@ -4,7 +4,7 @@ import { Plus, Receipt, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-type ExpenseRow = { id: string; category: string; description: string | null; amount: number; date: string; method: string | null };
+type ExpenseRow = { id: string; category: string; description: string | null; amount: number; date: string; method: string | null; phone: string | null };
 
 const catColors: Record<string, string> = {
   "Art Supplies": "bg-primary-soft text-primary",
