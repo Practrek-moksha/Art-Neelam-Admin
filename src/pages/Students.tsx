@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BATCHES } from "@/data/dummy";
-import { Search, Plus, ChevronRight, X, Trash2 } from "lucide-react";
+import { Search, Plus, ChevronRight, X, Trash2, Camera } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
