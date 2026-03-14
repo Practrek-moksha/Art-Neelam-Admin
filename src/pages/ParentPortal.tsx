@@ -118,6 +118,7 @@ export default function ParentPortal() {
 
   const tabs = [
     { key: "summary" as const, label: "Summary", icon: BookOpen },
+    { key: "attendance" as const, label: "Attendance", icon: CalendarCheck },
     { key: "fees" as const, label: "Fees", icon: CreditCard },
     { key: "id-card" as const, label: "ID Card", icon: IdCard },
     { key: "certificate" as const, label: "Certificate", icon: Award },
