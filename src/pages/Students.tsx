@@ -204,12 +204,24 @@ export default function Students() {
         </div>
       </div>
 
+      {/* Course Filter */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+        {["All", "Basic", "Advanced", "Professional"].map(c => (
+          <button key={c} onClick={() => setCourseFilter(c)}
+            className={cn("flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold font-body transition-all",
+              courseFilter === c ? "gradient-primary text-primary-foreground shadow-sm" : "bg-card border border-border text-muted-foreground hover:border-primary hover:text-primary")}>
+            {c}
+          </button>
+        ))}
+      </div>
+
+      {/* Batch Filter */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
         {["All", ...BATCHES].map(b => (
           <button key={b} onClick={() => setBatchFilter(b)}
             className={cn("flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold font-body transition-all",
               batchFilter === b ? "gradient-primary text-primary-foreground shadow-sm" : "bg-card border border-border text-muted-foreground hover:border-primary hover:text-primary")}>
-            {b.split(" (")[0]}
+            {b === "All" ? "All Batches" : b}
           </button>
         ))}
       </div>
