@@ -132,7 +132,7 @@ export default function Students() {
       toast.error("Name and WhatsApp are required");
       return;
     }
-    const { error } = await supabase.from("students").insert({
+    const { data: inserted, error } = await supabase.from("students").insert({
       name: form.name, whatsapp: form.whatsapp, dob: form.dob || null,
       school_name: form.school_name || null, address: form.address || null,
       emergency_contact: form.emergency_contact || null,
@@ -146,7 +146,7 @@ export default function Students() {
       payment_plan: form.payment_plan,
       discount_amount: discountVal, discount_percent: form.discount_percent,
       roll_number: "TEMP", status: form.status,
-    });
+    }).select("id").single();
     if (error) {
       if (error.code === "23505") {
         toast.error("A student with this WhatsApp number already exists");
@@ -155,9 +155,18 @@ export default function Students() {
       }
       console.error(error);
     } else {
+      // Upload photo if selected
+      if (photoFile && inserted?.id) {
+        const photoUrl = await uploadPhoto(inserted.id);
+        if (photoUrl) {
+          await supabase.from("students").update({ photo_url: photoUrl }).eq("id", inserted.id);
+        }
+      }
       toast.success("Student registered!");
       setShowForm(false);
       setForm(defaultForm);
+      setPhotoFile(null);
+      setPhotoPreview(null);
       fetchStudents();
     }
   };
