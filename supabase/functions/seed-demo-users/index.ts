@@ -18,29 +18,36 @@ serve(async (req) => {
     const results: string[] = [];
 
     // 1. Create admin user
+    let adminId: string | undefined;
     const { data: adminData, error: adminErr } = await supabaseAdmin.auth.admin.createUser({
       email: "admin@artneelam.academy",
       password: "Admin@123",
       email_confirm: true,
       user_metadata: { display_name: "Neelam Suthar" },
     });
-    if (adminErr && !adminErr.message.includes("already been registered")) {
-      results.push(`Admin error: ${adminErr.message}`);
-    } else {
-      const adminId = adminData?.user?.id;
-      if (adminId) {
-        // Ensure admin role
-        await supabaseAdmin.from("user_roles").upsert(
-          { user_id: adminId, role: "admin" },
-          { onConflict: "user_id,role" }
-        );
-        // Ensure profile
-        await supabaseAdmin.from("profiles").upsert(
-          { user_id: adminId, display_name: "Neelam Suthar" },
-          { onConflict: "user_id" }
-        );
-        results.push("Admin created: admin@artneelam.academy / Admin@123");
+    if (adminErr) {
+      if (adminErr.message.includes("already been registered")) {
+        // Look up existing user
+        const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
+        const existing = users?.find(u => u.email === "admin@artneelam.academy");
+        adminId = existing?.id;
+        results.push("Admin already exists, ensuring role...");
+      } else {
+        results.push(`Admin error: ${adminErr.message}`);
       }
+    } else {
+      adminId = adminData?.user?.id;
+    }
+    if (adminId) {
+      await supabaseAdmin.from("user_roles").upsert(
+        { user_id: adminId, role: "admin" },
+        { onConflict: "user_id,role" }
+      );
+      await supabaseAdmin.from("profiles").upsert(
+        { user_id: adminId, display_name: "Neelam Suthar" },
+        { onConflict: "user_id" }
+      );
+      results.push("Admin ready: admin@artneelam.academy / Admin@123");
     }
 
     // 2. Create parent user
