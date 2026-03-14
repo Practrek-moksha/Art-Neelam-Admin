@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircle, QrCode, X } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import logoImg from "@/assets/logo.png";
