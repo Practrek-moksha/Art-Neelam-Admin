@@ -120,7 +120,15 @@ export default function Expenses() {
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold font-body mt-1 inline-block ${catColors[e.category] || "bg-muted text-muted-foreground"}`}>{e.category}</span>
                 </div>
               </div>
-              <p className="font-display font-bold text-foreground text-lg">₹{e.amount.toLocaleString()}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-display font-bold text-foreground text-lg">₹{e.amount.toLocaleString()}</p>
+                {e.phone && (
+                  <button onClick={() => openWhatsApp(e.phone!, `Hi! Regarding expense: ${e.description} — ₹${e.amount.toLocaleString()} on ${new Date(e.date).toLocaleDateString("en-IN")}.`)}
+                    className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center hover:bg-green-200 transition-colors">
+                    <MessageCircle className="w-4 h-4 text-green-600" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
