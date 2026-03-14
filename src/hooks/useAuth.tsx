@@ -53,11 +53,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
+          setRoleLoading(true);
+          // Use setTimeout to avoid Supabase client deadlock, but roleLoading is already true
           setTimeout(() => fetchRole(session.user.id), 0);
         } else {
           setRole(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
@@ -65,9 +67,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
+        setRoleLoading(true);
         fetchRole(session.user.id);
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
