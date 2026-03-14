@@ -18,71 +18,83 @@ serve(async (req) => {
     const results: string[] = [];
 
     // 1. Create admin user
+    let adminId: string | undefined;
     const { data: adminData, error: adminErr } = await supabaseAdmin.auth.admin.createUser({
       email: "admin@artneelam.academy",
       password: "Admin@123",
       email_confirm: true,
       user_metadata: { display_name: "Neelam Suthar" },
     });
-    if (adminErr && !adminErr.message.includes("already been registered")) {
-      results.push(`Admin error: ${adminErr.message}`);
-    } else {
-      const adminId = adminData?.user?.id;
-      if (adminId) {
-        // Ensure admin role
-        await supabaseAdmin.from("user_roles").upsert(
-          { user_id: adminId, role: "admin" },
-          { onConflict: "user_id,role" }
-        );
-        // Ensure profile
-        await supabaseAdmin.from("profiles").upsert(
-          { user_id: adminId, display_name: "Neelam Suthar" },
-          { onConflict: "user_id" }
-        );
-        results.push("Admin created: admin@artneelam.academy / Admin@123");
+    if (adminErr) {
+      if (adminErr.message.includes("already been registered")) {
+        // Look up existing user
+        const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
+        const existing = users?.find(u => u.email === "admin@artneelam.academy");
+        adminId = existing?.id;
+        results.push("Admin already exists, ensuring role...");
+      } else {
+        results.push(`Admin error: ${adminErr.message}`);
       }
+    } else {
+      adminId = adminData?.user?.id;
+    }
+    if (adminId) {
+      await supabaseAdmin.from("user_roles").upsert(
+        { user_id: adminId, role: "admin" },
+        { onConflict: "user_id,role" }
+      );
+      await supabaseAdmin.from("profiles").upsert(
+        { user_id: adminId, display_name: "Neelam Suthar" },
+        { onConflict: "user_id" }
+      );
+      results.push("Admin ready: admin@artneelam.academy / Admin@123");
     }
 
     // 2. Create parent user
+    let parentId: string | undefined;
     const { data: parentData, error: parentErr } = await supabaseAdmin.auth.admin.createUser({
       email: "parent@artneelam.academy",
       password: "Parent@123",
       email_confirm: true,
       user_metadata: { display_name: "Rajesh Kumar (Parent)" },
     });
-    if (parentErr && !parentErr.message.includes("already been registered")) {
-      results.push(`Parent error: ${parentErr.message}`);
-    } else {
-      const parentId = parentData?.user?.id;
-      if (parentId) {
-        // Assign parent role
-        await supabaseAdmin.from("user_roles").upsert(
-          { user_id: parentId, role: "parent" },
-          { onConflict: "user_id,role" }
-        );
-        // Ensure profile
-        await supabaseAdmin.from("profiles").upsert(
-          { user_id: parentId, display_name: "Rajesh Kumar (Parent)" },
-          { onConflict: "user_id" }
-        );
-
-        // Link parent to first student (dummy student 1)
-        const { data: firstStudent } = await supabaseAdmin
-          .from("students")
-          .select("id")
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
-
-        if (firstStudent) {
-          await supabaseAdmin.from("student_parent_link").upsert(
-            { parent_user_id: parentId, student_id: firstStudent.id },
-            { onConflict: "parent_user_id,student_id" }
-          );
-          results.push(`Parent linked to student ${firstStudent.id}`);
-        }
-        results.push("Parent created: parent@artneelam.academy / Parent@123");
+    if (parentErr) {
+      if (parentErr.message.includes("already been registered")) {
+        const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
+        const existing = users?.find(u => u.email === "parent@artneelam.academy");
+        parentId = existing?.id;
+        results.push("Parent already exists, ensuring role...");
+      } else {
+        results.push(`Parent error: ${parentErr.message}`);
       }
+    } else {
+      parentId = parentData?.user?.id;
+    }
+    if (parentId) {
+      await supabaseAdmin.from("user_roles").upsert(
+        { user_id: parentId, role: "parent" },
+        { onConflict: "user_id,role" }
+      );
+      await supabaseAdmin.from("profiles").upsert(
+        { user_id: parentId, display_name: "Rajesh Kumar (Parent)" },
+        { onConflict: "user_id" }
+      );
+
+      const { data: firstStudent } = await supabaseAdmin
+        .from("students")
+        .select("id")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (firstStudent) {
+        await supabaseAdmin.from("student_parent_link").upsert(
+          { parent_user_id: parentId, student_id: firstStudent.id },
+          { onConflict: "parent_user_id,student_id" }
+        );
+        results.push(`Parent linked to student ${firstStudent.id}`);
+      }
+      results.push("Parent ready: parent@artneelam.academy / Parent@123");
     }
 
     return new Response(JSON.stringify({ success: true, results }), {
