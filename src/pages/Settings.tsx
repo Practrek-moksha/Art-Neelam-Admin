@@ -35,7 +35,7 @@ export default function Settings() {
     setSaving(true);
     try {
       for (const [key, value] of Object.entries(settings)) {
-        await supabase.from("academy_settings").upsert(
+        await supabase.from("academy_settings" as any).upsert(
           { key, value, updated_at: new Date().toISOString() },
           { onConflict: "key" }
         );
