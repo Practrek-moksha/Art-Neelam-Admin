@@ -48,7 +48,7 @@ export default function Layout({ children }: LayoutProps) {
           <a href="https://nasdemo1.lovable.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="relative">
               <img src={logoImg} alt="Art Neelam Academy" className="w-32 h-auto rounded-xl" />
-              <span className="absolute -top-1 -right-3 text-[8px] font-bold text-foreground/70">™</span>
+              <span className="absolute top-0.5 right-0.5 text-[7px] font-bold text-foreground/60">™</span>
             </div>
             <div>
               <h1 className="font-display text-base font-bold text-foreground leading-tight">Art Neelam</h1>
@@ -97,7 +97,7 @@ export default function Layout({ children }: LayoutProps) {
           <a href="https://nasdemo1.lovable.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="relative">
               <img src={logoImg} alt="Art Neelam Academy" className="w-24 h-auto rounded-lg" />
-              <span className="absolute -top-1 -right-3 text-[8px] font-bold text-foreground/70">™</span>
+              <span className="absolute top-0.5 right-0.5 text-[7px] font-bold text-foreground/60">™</span>
             </div>
             <span className="font-display font-bold text-foreground text-base">Art Neelam Academy</span>
           </a>
@@ -116,7 +116,7 @@ export default function Layout({ children }: LayoutProps) {
               <a href="https://nasdemo1.lovable.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                 <div className="relative">
                   <img src={logoImg} alt="Art Neelam Academy" className="w-28 h-auto rounded-xl" />
-                  <span className="absolute -top-1 -right-3 text-[8px] font-bold text-foreground/70">™</span>
+                  <span className="absolute top-0.5 right-0.5 text-[7px] font-bold text-foreground/60">™</span>
                 </div>
                 <div>
                   <h1 className="font-display font-bold text-foreground text-sm">Art Neelam Academy</h1>
@@ -144,7 +144,7 @@ export default function Layout({ children }: LayoutProps) {
       )}
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto md:pt-0 pt-16 pb-20 md:pb-0">
+        <div className="flex-1 overflow-y-auto md:pt-0 pt-[72px] pb-20 md:pb-0">
           <div className="animate-fade-in">{children}</div>
         </div>
       </main>
