@@ -40,7 +40,10 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <img src={logoImg} alt="Art Neelam Academy" className="w-32 h-32 rounded-2xl shadow-active mx-auto mb-4 object-contain" />
+          <div className="relative inline-block">
+            <img src={logoImg} alt="Art Neelam Academy" className="w-32 h-32 rounded-2xl shadow-active mx-auto mb-4 object-contain" />
+            <span className="absolute -top-1 -right-4 text-[10px] font-bold text-foreground/70">™</span>
+          </div>
           <h1 className="font-display text-2xl font-bold text-foreground">Art Neelam Academy</h1>
           <p className="text-sm text-muted-foreground font-body mt-1">
             {mode === "login" ? "Sign in to your account" : "Reset your password"}

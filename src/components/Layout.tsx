@@ -144,7 +144,7 @@ export default function Layout({ children }: LayoutProps) {
       )}
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto scrollbar-hide md:pt-0 pt-16 pb-20 md:pb-0">
+        <div className="flex-1 overflow-y-auto md:pt-0 pt-16 pb-20 md:pb-0">
           <div className="animate-fade-in">{children}</div>
         </div>
       </main>
