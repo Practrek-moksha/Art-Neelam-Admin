@@ -92,10 +92,7 @@ export default function Layout({ children }: LayoutProps) {
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b border-border shadow-sm pt-safe">
         <div className="flex items-center justify-between px-4 py-3">
           <a href="https://nasdemo1.lovable.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="relative">
-              <img src={logoImg} alt="Art Neelam Academy" className="w-24 h-auto rounded-lg" />
-              <span className="absolute top-0.5 right-0.5 text-[7px] font-bold text-foreground/60">™</span>
-            </div>
+            <img src={logoImg} alt="Art Neelam Academy" className="w-8 h-8 rounded-md object-contain" />
             <span className="font-display font-bold text-foreground text-base">Art Neelam Academy</span>
           </a>
           <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-muted transition-colors">
