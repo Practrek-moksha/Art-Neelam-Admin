@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Palette, CheckCircle, QrCode, FileText, X, Camera } from "lucide-react";
+import { CheckCircle, QrCode, FileText, X, Camera } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import logoImg from "@/assets/logo.png";
 import { BATCHES } from "@/data/dummy";
@@ -23,8 +23,6 @@ export default function RegisterForm() {
   const [phoneError, setPhoneError] = useState("");
   const [showQR, setShowQR] = useState(false);
   const [showPDF, setShowPDF] = useState(false);
-  const [rollNumber, setRollNumber] = useState("");
-  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [form, setForm] = useState(() => {
@@ -44,7 +42,6 @@ export default function RegisterForm() {
     };
   });
 
-  // Auto-save form draft to localStorage (24h expiry)
   useEffect(() => {
     const hasData = form.name || form.whatsapp || form.email;
     if (hasData) {
@@ -52,25 +49,8 @@ export default function RegisterForm() {
     }
   }, [form]);
 
-  const registrationUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/register`
-    : "";
-
+  const registrationUrl = typeof window !== "undefined" ? `${window.location.origin}/register` : "";
   const selectedCourse = COURSE_FEES[form.course];
-
-  // Check if student already registered by phone number
-  const checkExisting = async (phone: string) => {
-    const cleaned = phone.replace(/[\s\-()]/g, "").replace(/^\+91/, "");
-    if (cleaned.length < 10) return;
-    const { data } = await supabase.from("students").select("id, name").eq("whatsapp", cleaned).maybeSingle();
-    if (data) {
-      setAlreadyRegistered(true);
-      setError(`Student "${data.name}" is already registered with this number.`);
-    } else {
-      setAlreadyRegistered(false);
-      if (error.includes("already registered")) setError("");
-    }
-  };
 
   const validatePhone = (phone: string) => {
     if (!phone) { setPhoneError("WhatsApp number is required"); return false; }
@@ -82,17 +62,14 @@ export default function RegisterForm() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 1 * 1024 * 1024) {
-      setError("Photo must be less than 1 MB");
-      return;
-    }
+    if (file.size > 1 * 1024 * 1024) { setError("Photo must be less than 1 MB"); return; }
     setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.agreedTerms || alreadyRegistered) return;
+    if (!form.name || !form.agreedTerms) return;
     if (!validatePhone(form.whatsapp)) return;
 
     setLoading(true);
@@ -127,13 +104,13 @@ export default function RegisterForm() {
           mother_contact: form.motherContact || null,
           guardian_name: form.guardianName || null,
           terms_accepted: form.agreedTerms,
+          payment_plan: form.paymentPlan,
         },
       });
 
       if (fnError) throw new Error(fnError.message || "Submission failed");
       if (data?.error) throw new Error(data.error);
 
-      setRollNumber(data?.roll_number || "");
       localStorage.removeItem("register_form_draft");
       setSubmitted(true);
     } catch (err: any) {
@@ -150,21 +127,15 @@ export default function RegisterForm() {
           <div className="w-20 h-20 rounded-full bg-accent flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-10 h-10 text-accent-vivid" />
           </div>
-          <h2 className="font-display text-2xl font-bold text-foreground">Registration Successful!</h2>
-          <p className="text-muted-foreground font-body mt-2">Thank you for registering with Art Neelam Academy. We'll contact you on WhatsApp to confirm your enrollment.</p>
+          <h2 className="font-display text-2xl font-bold text-foreground">Registration Submitted!</h2>
+          <p className="text-muted-foreground font-body mt-2">Thank you for registering with Art Neelam Academy. Your application is under review. We'll contact you on WhatsApp once approved.</p>
           <div className="mt-6 p-4 bg-card rounded-2xl border border-border shadow-card text-left">
             <p className="text-xs font-semibold text-muted-foreground font-body">Student Name</p>
             <p className="text-base font-bold font-body text-foreground">{form.name}</p>
-            {rollNumber && (
-              <>
-                <p className="text-xs font-semibold text-muted-foreground font-body mt-2">Roll Number</p>
-                <p className="text-base font-bold font-body text-primary">{rollNumber}</p>
-              </>
-            )}
             <p className="text-xs font-semibold text-muted-foreground font-body mt-2">Course</p>
             <p className="text-sm font-body text-foreground">{form.course} • {form.batch}</p>
-            <p className="text-xs font-semibold text-muted-foreground font-body mt-2">Fee</p>
-            <p className="text-sm font-bold font-body text-primary">₹{selectedCourse.fee.toLocaleString()}</p>
+            <p className="text-xs font-semibold text-muted-foreground font-body mt-2">Status</p>
+            <p className="text-sm font-bold font-body text-primary">⏳ Pending Review</p>
           </div>
         </div>
       </div>
@@ -192,8 +163,6 @@ export default function RegisterForm() {
         <FormSection title="Personal Information">
           <Field label="Student Name*" type="text" value={form.name} onChange={v => setForm(p => ({ ...p, name: v }))} placeholder="Full name" required />
           <Field label="Date of Birth*" type="date" value={form.dob} onChange={v => setForm(p => ({ ...p, dob: v }))} required />
-          
-          {/* Photo Upload */}
           <div>
             <label className="text-xs font-semibold text-muted-foreground font-body">Student Photo (max 1 MB)</label>
             <div className="flex items-center gap-3 mt-1">
@@ -214,7 +183,6 @@ export default function RegisterForm() {
               </label>
             </div>
           </div>
-          
           <Field label="School Name" type="text" value={form.schoolName} onChange={v => setForm(p => ({ ...p, schoolName: v }))} placeholder="Current school" />
           <Field label="Address" type="text" value={form.address} onChange={v => setForm(p => ({ ...p, address: v }))} placeholder="Home address" textarea />
           <Field label="Emergency Contact" type="tel" value={form.emergencyContact} onChange={v => setForm(p => ({ ...p, emergencyContact: v }))} placeholder="Emergency phone" />
@@ -234,7 +202,7 @@ export default function RegisterForm() {
             <label className="text-xs font-semibold text-muted-foreground font-body">WhatsApp Number*</label>
             <input type="tel" value={form.whatsapp}
               onChange={e => { setForm(p => ({ ...p, whatsapp: e.target.value })); if (phoneError) validatePhone(e.target.value); }}
-              onBlur={() => { if (form.whatsapp) { validatePhone(form.whatsapp); checkExisting(form.whatsapp); } }}
+              onBlur={() => { if (form.whatsapp) validatePhone(form.whatsapp); }}
               placeholder="e.g. 9920546217" required
               className={`w-full mt-1 px-3 py-2 bg-muted rounded-xl border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30 ${phoneError ? "border-destructive" : "border-border"}`}
             />
@@ -280,7 +248,6 @@ export default function RegisterForm() {
               <option value="50-50 Custom">50-50 Custom</option>
             </select>
           </div>
-          {/* Fee Preview */}
           <div className="bg-muted rounded-xl p-3">
             <p className="text-xs font-bold text-foreground font-body mb-2">💰 Fee Structure</p>
             <div className="space-y-1 text-[11px] font-body">
@@ -305,7 +272,6 @@ export default function RegisterForm() {
           </div>
         </FormSection>
 
-        {/* Terms & Conditions */}
         <div className="bg-muted rounded-2xl p-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-display font-bold text-foreground text-sm">Terms & Conditions</h3>
@@ -330,13 +296,12 @@ export default function RegisterForm() {
 
         {error && <p className="text-xs text-destructive font-body bg-destructive/10 px-3 py-2 rounded-lg">{error}</p>}
 
-        <button type="submit" disabled={!form.agreedTerms || !form.name || !form.whatsapp || loading || alreadyRegistered}
+        <button type="submit" disabled={!form.agreedTerms || !form.name || !form.whatsapp || loading}
           className="w-full py-3.5 rounded-2xl gradient-primary text-primary-foreground font-bold font-body text-base shadow-active hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
           {loading ? "Submitting..." : "Submit Registration"}
         </button>
       </form>
 
-      {/* QR Code Modal */}
       {showQR && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={() => setShowQR(false)}>
           <div className="bg-card rounded-2xl p-6 shadow-active animate-fade-in text-center max-w-xs mx-4" onClick={e => e.stopPropagation()}>
@@ -359,7 +324,6 @@ export default function RegisterForm() {
         </div>
       )}
 
-      {/* PDF Preview Modal */}
       {showPDF && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={() => setShowPDF(false)}>
           <div className="bg-card rounded-2xl w-full max-w-2xl h-[80vh] shadow-active animate-fade-in flex flex-col mx-4" onClick={e => e.stopPropagation()}>
