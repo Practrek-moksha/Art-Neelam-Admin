@@ -18,7 +18,7 @@ export default function Settings() {
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase.from("academy_settings").select("key, value");
+      const { data, error } = await supabase.from("academy_settings" as any).select("key, value");
       if (error) { toast.error("Failed to load settings"); console.error(error); }
       const map: SettingsMap = {};
       (data || []).forEach((r: any) => { map[r.key] = r.value; });
