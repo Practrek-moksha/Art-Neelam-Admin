@@ -56,7 +56,7 @@ export default function Settings() {
       <Section icon={<Globe className="w-4 h-4 text-primary" />} title="Studio Information">
         <div className="space-y-3">
           {[
-            { label: "Studio Name", value: "Art Neelam Studio" },
+            { label: "Academy Name", value: "Art Neelam Academy" },
             { label: "Address", value: "123 Creative Lane, Delhi" },
             { label: "Phone", value: "+91 98765 43210" },
             { label: "Email", value: "info@artneelam.studio" },
