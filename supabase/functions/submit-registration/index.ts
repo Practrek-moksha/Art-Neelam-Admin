@@ -10,13 +10,6 @@ function isValidIndianPhone(phone: string): boolean {
   return /^(\+91)?[6-9]\d{9}$/.test(cleaned);
 }
 
-// Updated fee structure
-const COURSE_CONFIG: Record<string, { fee: number; sessions: number; ages: string }> = {
-  "Basic": { fee: 9000, sessions: 36, ages: "4–7" },
-  "Advanced": { fee: 15000, sessions: 36, ages: "8–12" },
-  "Professional": { fee: 30000, sessions: 36, ages: "13+" },
-};
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -28,7 +21,7 @@ Deno.serve(async (req) => {
       name, phone, email, course, batch, notes,
       dob, school_name, address, emergency_contact,
       father_name, father_contact, mother_name, mother_contact,
-      guardian_name, terms_accepted,
+      guardian_name, terms_accepted, payment_plan,
     } = body;
 
     if (!name || typeof name !== "string" || name.trim().length < 2 || name.length > 100) {
@@ -51,7 +44,6 @@ Deno.serve(async (req) => {
 
     const validCourses = ["Basic", "Advanced", "Professional"];
     const safeCourse = validCourses.includes(course) ? course : "Basic";
-    const config = COURSE_CONFIG[safeCourse];
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -59,42 +51,22 @@ Deno.serve(async (req) => {
 
     const cleanPhone = phone.replace(/[\s\-()]/g, "").replace(/^\+91/, "");
 
-    // Check duplicate by phone
-    const { data: existingStudent } = await supabase
-      .from("students")
-      .select("id, name")
-      .eq("whatsapp", cleanPhone)
-      .maybeSingle();
-
-    if (existingStudent) {
-      return new Response(JSON.stringify({ error: `A student (${existingStudent.name}) with this WhatsApp number is already enrolled.` }), {
-        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Rate limit: check leads in last 24h
+    // Rate limit: check registrations in last 24h from same phone
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: existingLead } = await supabase
-      .from("leads")
+    const { data: recentReg } = await supabase
+      .from("registrations")
       .select("id")
-      .eq("phone", cleanPhone)
+      .eq("whatsapp", cleanPhone)
       .gte("created_at", oneDayAgo);
 
-    if (existingLead && existingLead.length > 0) {
+    if (recentReg && recentReg.length > 0) {
       return new Response(JSON.stringify({ error: "A registration with this number was already submitted recently. Please wait 24 hours." }), {
         status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Calculate validity dates
-    const validityStart = new Date().toISOString().slice(0, 10);
-    const weeks = Math.ceil(config.sessions / 4);
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + weeks * 7);
-    const validityEnd = endDate.toISOString().slice(0, 10);
-
-    // Insert student — roll_number set to TEMP, trigger auto-generates NAS-####
-    const { data: studentData, error: studentError } = await supabase.from("students").insert({
+    // Insert into registrations table (pending approval)
+    const { data: regData, error: regError } = await supabase.from("registrations").insert({
       name: name.trim(),
       whatsapp: cleanPhone,
       email: email?.trim() || null,
@@ -109,43 +81,39 @@ Deno.serve(async (req) => {
       mother_name: mother_name || null,
       mother_contact: mother_contact || null,
       guardian_name: guardian_name || null,
-      roll_number: "TEMP",
-      fee_amount: config.fee,
-      total_sessions: config.sessions,
-      validity_start: validityStart,
-      validity_end: validityEnd,
-      enrollment_date: validityStart,
       terms_accepted: terms_accepted || false,
-      status: "active",
-    }).select("id, roll_number").single();
+      payment_plan: payment_plan || "Full Payment",
+      notes: notes || null,
+      status: "pending",
+    }).select("id").single();
 
-    if (studentError) {
-      console.error("Student insert error:", studentError);
-      if (studentError.code === "23505") {
-        return new Response(JSON.stringify({ error: "A student with this phone number is already enrolled." }), {
-          status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: "Failed to register student. Please try again." }), {
+    if (regError) {
+      console.error("Registration insert error:", regError);
+      return new Response(JSON.stringify({ error: "Failed to submit registration. Please try again." }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Also insert into leads for CRM tracking
-    await supabase.from("leads").insert({
+    const { data: leadData } = await supabase.from("leads").insert({
       name: name.trim(),
       phone: cleanPhone,
       email: email?.trim() || null,
       course: safeCourse,
       source: "Registration Form",
       notes: notes || null,
-      status: "converted",
-    });
+      status: "new",
+    }).select("id").single();
+
+    // Link registration to lead
+    if (leadData) {
+      await supabase.from("registrations").update({ lead_id: leadData.id }).eq("id", regData.id);
+    }
 
     return new Response(JSON.stringify({
       success: true,
-      id: studentData.id,
-      roll_number: studentData.roll_number,
+      id: regData.id,
+      message: "Registration submitted! The academy will review and confirm your enrollment.",
     }), {
       status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
