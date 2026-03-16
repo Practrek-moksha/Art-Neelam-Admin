@@ -384,7 +384,7 @@ function InvoiceModal({ payment, allPayments, onClose }: { payment: PaymentRow; 
           {/* Header */}
           <div className="flex items-center justify-between mb-6 border-b-2 border-[#1e3a5f] pb-4">
             <div className="flex items-center gap-3">
-              <img src={logoImg} alt="Art Neelam" className="w-14 h-auto" />
+              <img src={logoImg} alt="Art Neelam Academy" className="w-28 h-auto" />
               <div>
                 <h2 className="font-display font-bold text-[#1e3a5f] text-lg">Art Neelam Academy</h2>
                 <p className="text-[10px] text-[#666] font-body">Drawing & Painting Classes</p>

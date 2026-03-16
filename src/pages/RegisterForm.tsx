@@ -147,7 +147,7 @@ export default function RegisterForm() {
       <div className="gradient-primary px-4 py-5 pt-safe">
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div className="flex items-center gap-3">
-            <img src={logoImg} alt="Art Neelam" className="w-10 h-10 rounded-xl object-contain bg-primary-foreground/20 p-1" />
+            <img src={logoImg} alt="Art Neelam Academy" className="w-20 h-20 rounded-xl object-contain bg-primary-foreground/20 p-1" />
             <div>
               <h1 className="font-display font-bold text-primary-foreground text-lg">Art Neelam Academy</h1>
               <p className="text-xs text-primary-foreground/80 font-body">Student Registration Form</p>

@@ -485,7 +485,7 @@ export default function ParentPortal() {
             <div className="p-5">
               <div className="flex items-center justify-between mb-4 border-b-2 border-[#1e3a5f] pb-3">
                 <div className="flex items-center gap-2">
-                  <img src={logoImg} alt="Art Neelam" className="w-10 h-auto" />
+                  <img src={logoImg} alt="Art Neelam Academy" className="w-20 h-auto" />
                   <div>
                     <h2 className="font-display font-bold text-[#1e3a5f] text-sm">Art Neelam Academy</h2>
                     <p className="text-[9px] text-[#999] font-body">📞 +91 99677 01108</p>
