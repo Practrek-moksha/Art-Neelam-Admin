@@ -150,27 +150,27 @@ export default function Dashboard() {
       </div>
 
       {/* Expense Summary & Profit */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-card rounded-2xl shadow-card border border-border p-4">
           <div className="flex items-center gap-2 mb-1">
             <Receipt className="w-4 h-4 text-destructive" />
             <p className="text-xs font-semibold text-muted-foreground font-body">Expenses (Month)</p>
           </div>
-          <p className="font-display text-xl font-bold text-foreground">₹{expenseSummary.monthExpenses.toLocaleString()}</p>
+          <p className="font-display text-lg md:text-xl font-bold text-foreground">₹{expenseSummary.monthExpenses.toLocaleString()}</p>
         </div>
         <div className={`rounded-2xl p-4 ${expenseSummary.profit >= 0 ? "bg-accent" : "bg-destructive/10"}`}>
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className={`w-4 h-4 ${expenseSummary.profit >= 0 ? "text-accent-foreground" : "text-destructive"}`} />
             <p className={`text-xs font-semibold font-body ${expenseSummary.profit >= 0 ? "text-accent-foreground" : "text-destructive"}`}>Profit (Month)</p>
           </div>
-          <p className="font-display text-xl font-bold text-foreground">₹{expenseSummary.profit.toLocaleString()}</p>
+          <p className="font-display text-lg md:text-xl font-bold text-foreground">₹{expenseSummary.profit.toLocaleString()}</p>
         </div>
         <div className="bg-primary-soft rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <Receipt className="w-4 h-4 text-primary" />
             <p className="text-xs font-semibold text-primary font-body">Total Expenses</p>
           </div>
-          <p className="font-display text-xl font-bold text-foreground">₹{expenseSummary.totalExpenses.toLocaleString()}</p>
+          <p className="font-display text-lg md:text-xl font-bold text-foreground">₹{expenseSummary.totalExpenses.toLocaleString()}</p>
         </div>
       </div>
 

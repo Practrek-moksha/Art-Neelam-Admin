@@ -108,12 +108,11 @@ export default function Layout({ children }: LayoutProps) {
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
           <aside className="relative w-72 bg-card h-full shadow-active animate-slide-in overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-border">
-              <a href="https://nasdemo1.lovable.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                <img src={logoImg} alt="Art Neelam Academy" className="w-28 h-auto rounded-xl" />
-                <div>
-                  <h1 className="font-display font-bold text-foreground text-sm">Art Neelam<sup className="text-[7px]">™</sup> Academy</h1>
-                  <p className="text-xs text-muted-foreground">Admin Panel</p>
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <a href="https://nasdemo1.lovable.app/" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+                <div className="relative inline-block">
+                  <img src={logoImg} alt="Art Neelam Academy" className="w-36 h-auto rounded-xl" />
+                  <span className="absolute top-0 -right-3 text-[7px] font-bold text-foreground/70">™</span>
                 </div>
               </a>
               <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-muted">
