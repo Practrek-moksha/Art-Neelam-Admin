@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { BATCHES } from "@/data/dummy";
-import { Search, Plus, ChevronRight, X, Trash2, Camera } from "lucide-react";
+import { Search, Plus, ChevronRight, X, Trash2, Camera, Pencil } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -315,6 +315,10 @@ export default function Students() {
                 </div>
               </Link>
               <div className="flex items-center gap-1 flex-shrink-0">
+                <Link to={`/students/${s.id}`}
+                  className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title="Edit student">
+                  <Pencil className="w-4 h-4" />
+                </Link>
                 <button onClick={(e) => { e.preventDefault(); deleteStudent(s.id, s.name); }}
                   className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Delete student">
                   <Trash2 className="w-4 h-4" />
@@ -491,6 +495,7 @@ function FormField({ label, value, onChange, type = "text", textarea = false }: 
           className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
       ) : (
         <input type={type} value={value} onChange={e => onChange(e.target.value)}
+          {...(type === "number" ? { min: "0" } : {})}
           className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
       )}
     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Award, Download } from "lucide-react";
+import { Search, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logoImg from "@/assets/logo.png";
@@ -98,7 +98,7 @@ export default function Certificate() {
               className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold font-body transition-all border ${
                 selectedId === s.id ? "border-primary bg-primary-soft text-primary" : "border-border bg-card text-muted-foreground hover:border-primary/50"
               }`}>
-              {eligible && <Award className="w-3 h-3 text-amber-500" />}
+              {eligible && <span className="text-amber-500 text-[10px]">★</span>}
               {s.name.split(" ")[0]}
               <span className="text-[9px] opacity-60">{s.sessionsAttended}/{s.total_sessions}</span>
             </button>
@@ -149,10 +149,6 @@ export default function Certificate() {
 
               <div className="flex items-end justify-between w-full mt-4 print:mt-10">
                 <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 print:w-20 print:h-20 rounded-full flex items-center justify-center cert-printable"
-                    style={{ background: "radial-gradient(circle, #d4af37 0%, #c9a227 70%, #b8941f 100%)", boxShadow: "0 2px 10px rgba(201,162,39,0.4)" }}>
-                    <Award className="w-7 h-7 print:w-10 print:h-10" style={{ color: "#ffffff" }} />
-                  </div>
                   <p className="text-[7px] print:text-xs font-body mt-1" style={{ color: "#999" }}>{today}</p>
                 </div>
                 <div className="text-center">

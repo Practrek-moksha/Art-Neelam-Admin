@@ -4,7 +4,7 @@ import { Settings as SettingsIcon, Key, Globe, Bell, Shield, ChevronRight, Copy,
 export default function Settings() {
   const [apiKey] = useState("nas_live_sk_" + Math.random().toString(36).substr(2, 24));
   const [copied, setCopied] = useState(false);
-  const [webhookUrl, setWebhookUrl] = useState("https://artneelam.studio/api/leads");
+  const [webhookUrl, setWebhookUrl] = useState("https://artneelam.academy/api/leads");
   const [settings, setSettings] = useState({
     emailNotifications: true,
     whatsappAlerts: true,
@@ -56,7 +56,7 @@ export default function Settings() {
       <Section icon={<Globe className="w-4 h-4 text-primary" />} title="Studio Information">
         <div className="space-y-3">
           {[
-            { label: "Studio Name", value: "Art Neelam Studio" },
+            { label: "Academy Name", value: "Art Neelam Academy" },
             { label: "Address", value: "123 Creative Lane, Delhi" },
             { label: "Phone", value: "+91 98765 43210" },
             { label: "Email", value: "info@artneelam.studio" },
@@ -101,7 +101,7 @@ export default function Settings() {
           {[
             { label: "Change Admin Password", desc: "Update your login credentials" },
             { label: "Parent Portal Access", desc: "Manage parent login settings" },
-            { label: "Export Data", desc: "Download all studio data as CSV" },
+            { label: "Export Data", desc: "Download all academy data as CSV" },
           ].map(item => (
             <button key={item.label} className="w-full flex items-center justify-between py-3 border-b border-border last:border-0 hover:bg-muted px-2 rounded-lg transition-colors">
               <div className="text-left">
@@ -120,7 +120,7 @@ export default function Settings() {
       </button>
 
       <p className="text-center text-[10px] text-muted-foreground font-body pb-4">
-        Art Neelam Studio Management System v1.0 • Built with ❤️
+        Art Neelam Academy Management System v1.0 • Built with ❤️
       </p>
     </div>
   );
