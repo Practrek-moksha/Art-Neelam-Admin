@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Phone, MessageCircle, IdCard, Calendar, CreditCard, User, BookOpen, Clock, Send, Award, KeyRound, Loader2, Plus, X, FileText, Printer, Camera } from "lucide-react";
+import { ArrowLeft, Phone, MessageCircle, IdCard, Calendar, CreditCard, User, BookOpen, Clock, Send, Award, KeyRound, Loader2, Plus, X, FileText, Printer, Camera, Pencil } from "lucide-react";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
