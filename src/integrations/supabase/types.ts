@@ -222,6 +222,95 @@ export type Database = {
         }
         Relationships: []
       }
+      registrations: {
+        Row: {
+          address: string | null
+          batch: string
+          course: string
+          created_at: string
+          dob: string | null
+          email: string | null
+          emergency_contact: string | null
+          father_contact: string | null
+          father_name: string | null
+          guardian_name: string | null
+          id: string
+          lead_id: string | null
+          mother_contact: string | null
+          mother_name: string | null
+          name: string
+          notes: string | null
+          payment_plan: string | null
+          photo_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          school_name: string | null
+          status: string
+          terms_accepted: boolean | null
+          whatsapp: string
+        }
+        Insert: {
+          address?: string | null
+          batch?: string
+          course?: string
+          created_at?: string
+          dob?: string | null
+          email?: string | null
+          emergency_contact?: string | null
+          father_contact?: string | null
+          father_name?: string | null
+          guardian_name?: string | null
+          id?: string
+          lead_id?: string | null
+          mother_contact?: string | null
+          mother_name?: string | null
+          name: string
+          notes?: string | null
+          payment_plan?: string | null
+          photo_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_name?: string | null
+          status?: string
+          terms_accepted?: boolean | null
+          whatsapp: string
+        }
+        Update: {
+          address?: string | null
+          batch?: string
+          course?: string
+          created_at?: string
+          dob?: string | null
+          email?: string | null
+          emergency_contact?: string | null
+          father_contact?: string | null
+          father_name?: string | null
+          guardian_name?: string | null
+          id?: string
+          lead_id?: string | null
+          mother_contact?: string | null
+          mother_name?: string | null
+          name?: string
+          notes?: string | null
+          payment_plan?: string | null
+          photo_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_name?: string | null
+          status?: string
+          terms_accepted?: boolean | null
+          whatsapp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registrations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_parent_link: {
         Row: {
           created_at: string
