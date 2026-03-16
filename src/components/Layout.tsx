@@ -130,8 +130,13 @@ export default function Layout({ children }: LayoutProps) {
                 </Link>
               ))}
             </nav>
+            <div className="p-4 border-t border-border mt-auto">
+              <button onClick={() => { signOut(); setSidebarOpen(false); }} className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all">
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            </div>
           </aside>
-        </div>
       )}
 
       <main className="flex-1 flex flex-col overflow-hidden">
