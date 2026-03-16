@@ -25,6 +25,8 @@ export default function StudentProfile() {
   const [showFeeForm, setShowFeeForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [showInvoice, setShowInvoice] = useState<any>(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showReenroll, setShowReenroll] = useState(false);
 
   const fetchData = async () => {
     if (!id) return;
