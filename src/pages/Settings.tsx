@@ -120,7 +120,7 @@ export default function Settings() {
       </button>
 
       <p className="text-center text-[10px] text-muted-foreground font-body pb-4">
-        Art Neelam Studio Management System v1.0 • Built with ❤️
+        Art Neelam Academy Management System v1.0 • Built with ❤️
       </p>
     </div>
   );
