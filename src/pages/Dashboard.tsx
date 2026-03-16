@@ -116,17 +116,17 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <img src={logoImg} alt="Art Neelam Academy" className="w-24 h-auto" />
-          <div>
-            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">  Hey, welcome back 🎨</h1>
-            <p className="text-muted-foreground text-sm mt-1 font-body">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <img src={logoImg} alt="Art Neelam Academy" className="w-16 md:w-24 h-auto flex-shrink-0 hidden md:block" />
+          <div className="min-w-0">
+            <h1 className="font-display text-xl md:text-3xl font-bold text-foreground truncate">Hey, welcome back 🎨</h1>
+            <p className="text-muted-foreground text-xs md:text-sm mt-1 font-body">
               {today.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
             </p>
           </div>
         </div>
-        <Link to="/notices" className="relative p-2.5 bg-card rounded-xl border border-border shadow-sm hover:shadow-card transition-all">
+        <Link to="/notices" className="relative p-2 md:p-2.5 bg-card rounded-xl border border-border shadow-sm hover:shadow-card transition-all flex-shrink-0">
           <Bell className="w-5 h-5 text-primary" />
           {stats.noticeCount > 0 &&
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full text-[9px] text-primary-foreground flex items-center justify-center font-bold">
