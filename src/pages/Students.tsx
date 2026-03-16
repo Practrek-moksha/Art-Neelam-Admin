@@ -182,6 +182,15 @@ export default function Students() {
           await supabase.from("students").update({ photo_url: photoUrl }).eq("id", inserted.id);
         }
       }
+      // Mark registration and lead as approved/converted
+      if (pendingRegistrationId) {
+        await supabase.from("registrations").update({ status: "approved", reviewed_at: new Date().toISOString() }).eq("id", pendingRegistrationId);
+        setPendingRegistrationId(null);
+      }
+      if (pendingLeadId) {
+        await supabase.from("leads").update({ status: "converted" }).eq("id", pendingLeadId);
+        setPendingLeadId(null);
+      }
       toast.success("Student registered!");
       setShowForm(false);
       setForm(defaultForm);
