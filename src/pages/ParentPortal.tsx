@@ -394,7 +394,7 @@ export default function ParentPortal() {
           <div ref={printRef} className="bg-white rounded-2xl shadow-card border border-border overflow-hidden print-area" style={{ maxWidth: 340, margin: "0 auto" }}>
             {/* ID Card Front */}
             <div className="bg-gradient-to-br from-[#1e3a5f] to-[#2d5a8e] p-4 text-white text-center">
-              <img src={logoImg} alt="Art Neelam" className="w-14 h-auto mx-auto mb-2" />
+              <img src={logoImg} alt="Art Neelam Academy" className="w-28 h-auto mx-auto mb-2" />
               <h3 className="font-display font-bold text-sm">Art Neelam Academy</h3>
               <p className="text-[9px] opacity-80">Student Identity Card</p>
             </div>
