@@ -167,6 +167,10 @@ export default function StudentProfile() {
           {isEligibleForCert && (
             <Link to="/certificates" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-warm text-warm-foreground text-[10px] font-semibold hover:opacity-80"><Award className="w-3 h-3" /> Generate Certificate</Link>
           )}
+          {student.course !== "Professional" && (
+            <button onClick={() => setShowUpgrade(true)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-semibold hover:opacity-80"><ArrowUpCircle className="w-3 h-3" /> Upgrade</button>
+          )}
+          <button onClick={() => setShowReenroll(true)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-[10px] font-semibold hover:opacity-80"><RefreshCw className="w-3 h-3" /> Re-enroll</button>
         </div>
       </div>
 
