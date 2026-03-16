@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Phone, MessageCircle, IdCard, Calendar, CreditCard, User, BookOpen, Clock, Send, Award, KeyRound, Loader2, Plus, X, FileText, Printer, Camera, Pencil } from "lucide-react";
+import { ArrowLeft, Phone, MessageCircle, IdCard, Calendar, CreditCard, User, BookOpen, Clock, Send, Award, KeyRound, Loader2, Plus, X, FileText, Printer, Camera, Pencil, ArrowUpCircle, RefreshCw } from "lucide-react";
+import { BATCHES } from "@/data/dummy";
 import { openWhatsApp, templates } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -24,6 +25,8 @@ export default function StudentProfile() {
   const [showFeeForm, setShowFeeForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [showInvoice, setShowInvoice] = useState<any>(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showReenroll, setShowReenroll] = useState(false);
 
   const fetchData = async () => {
     if (!id) return;
@@ -164,6 +167,10 @@ export default function StudentProfile() {
           {isEligibleForCert && (
             <Link to="/certificates" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-warm text-warm-foreground text-[10px] font-semibold hover:opacity-80"><Award className="w-3 h-3" /> Generate Certificate</Link>
           )}
+          {student.course !== "Professional" && (
+            <button onClick={() => setShowUpgrade(true)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-semibold hover:opacity-80"><ArrowUpCircle className="w-3 h-3" /> Upgrade</button>
+          )}
+          <button onClick={() => setShowReenroll(true)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-[10px] font-semibold hover:opacity-80"><RefreshCw className="w-3 h-3" /> Re-enroll</button>
         </div>
       </div>
 
@@ -313,6 +320,24 @@ export default function StudentProfile() {
           student={student}
           allPayments={payments}
           onClose={() => setShowInvoice(null)}
+        />
+      )}
+
+      {/* Upgrade Modal */}
+      {showUpgrade && (
+        <UpgradeModal
+          student={student}
+          onClose={() => setShowUpgrade(false)}
+          onSaved={() => { setShowUpgrade(false); fetchData(); }}
+        />
+      )}
+
+      {/* Re-enroll Modal */}
+      {showReenroll && (
+        <ReenrollModal
+          student={student}
+          onClose={() => setShowReenroll(false)}
+          onSaved={() => { setShowReenroll(false); fetchData(); }}
         />
       )}
     </div>
@@ -882,5 +907,191 @@ function SendCredentialsButton({ student }: { student: any }) {
       {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <KeyRound className="w-3 h-3" />}
       {student.parent_account_created ? "Resend Credentials" : "Send Parent Login"}
     </button>
+  );
+}
+
+const COURSE_FEES: Record<string, { fee: number; sessions: number }> = {
+  Basic: { fee: 9000, sessions: 36 },
+  Advanced: { fee: 15000, sessions: 36 },
+  Professional: { fee: 30000, sessions: 36 },
+};
+
+const COURSE_ORDER = ["Basic", "Advanced", "Professional"];
+
+function UpgradeModal({ student, onClose, onSaved }: { student: any; onClose: () => void; onSaved: () => void }) {
+  const currentIdx = COURSE_ORDER.indexOf(student.course);
+  const nextCourses = COURSE_ORDER.slice(currentIdx + 1);
+  const [course, setCourse] = useState(nextCourses[0] || "Professional");
+  const [batch, setBatch] = useState(student.batch || BATCHES[0]);
+  const [paymentPlan, setPaymentPlan] = useState(student.payment_plan || "Full Payment");
+  const [saving, setSaving] = useState(false);
+
+  const courseInfo = COURSE_FEES[course] || COURSE_FEES.Professional;
+
+  const handleUpgrade = async () => {
+    setSaving(true);
+    const today = new Date().toISOString().slice(0, 10);
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + Math.ceil(courseInfo.sessions / 4) * 7);
+
+    const { error } = await supabase.from("students").update({
+      course,
+      batch,
+      fee_amount: courseInfo.fee,
+      total_sessions: courseInfo.sessions,
+      payment_plan: paymentPlan,
+      status: "active",
+      enrollment_date: today,
+      validity_start: today,
+      validity_end: endDate.toISOString().slice(0, 10),
+      discount_amount: 0,
+      discount_percent: 0,
+    }).eq("id", student.id);
+
+    if (error) { toast.error("Upgrade failed: " + error.message); setSaving(false); return; }
+    toast.success(`🎉 ${student.name} upgraded to ${course}!`);
+    onSaved();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card rounded-t-3xl md:rounded-2xl w-full md:max-w-md p-6 shadow-active animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-lg font-bold text-foreground">⬆️ Upgrade Course</h2>
+          <button onClick={onClose}><X className="w-5 h-5 text-muted-foreground" /></button>
+        </div>
+
+        <div className="bg-muted rounded-xl p-3 mb-4">
+          <p className="text-xs font-body text-muted-foreground">Current: <span className="font-semibold text-foreground">{student.course}</span> · ₹{student.fee_amount.toLocaleString()}</p>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground font-body">Upgrade To*</label>
+            <select value={course} onChange={e => setCourse(e.target.value)}
+              className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
+              {nextCourses.map(c => <option key={c} value={c}>{c} — ₹{COURSE_FEES[c].fee.toLocaleString()} ({COURSE_FEES[c].sessions} sessions)</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground font-body">Batch</label>
+            <select value={batch} onChange={e => setBatch(e.target.value)}
+              className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
+              {BATCHES.map(b => <option key={b}>{b}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground font-body">Payment Plan</label>
+            <select value={paymentPlan} onChange={e => setPaymentPlan(e.target.value)}
+              className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
+              {["Full Payment", "50-30-20 Installment", "50-50 Custom"].map(p => <option key={p}>{p}</option>)}
+            </select>
+          </div>
+
+          <div className="bg-primary-soft rounded-xl p-3 border border-primary/20">
+            <p className="text-xs font-bold text-primary font-body">New Fee: ₹{courseInfo.fee.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground font-body mt-1">{courseInfo.sessions} sessions · Validity resets from today</p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-5">
+          <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-border text-sm font-semibold font-body text-muted-foreground hover:bg-muted">Cancel</button>
+          <button onClick={handleUpgrade} disabled={saving}
+            className="flex-1 py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold font-body hover:opacity-90 disabled:opacity-50">
+            {saving ? "Upgrading..." : `Upgrade to ${course}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReenrollModal({ student, onClose, onSaved }: { student: any; onClose: () => void; onSaved: () => void }) {
+  const [course, setCourse] = useState(student.course || "Basic");
+  const [batch, setBatch] = useState(student.batch || BATCHES[0]);
+  const [paymentPlan, setPaymentPlan] = useState(student.payment_plan || "Full Payment");
+  const [saving, setSaving] = useState(false);
+
+  const courseInfo = COURSE_FEES[course] || COURSE_FEES.Basic;
+
+  const handleReenroll = async () => {
+    setSaving(true);
+    const today = new Date().toISOString().slice(0, 10);
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + Math.ceil(courseInfo.sessions / 4) * 7);
+
+    const { error } = await supabase.from("students").update({
+      course,
+      batch,
+      fee_amount: courseInfo.fee,
+      total_sessions: courseInfo.sessions,
+      payment_plan: paymentPlan,
+      status: "active",
+      enrollment_date: today,
+      validity_start: today,
+      validity_end: endDate.toISOString().slice(0, 10),
+      discount_amount: 0,
+      discount_percent: 0,
+    }).eq("id", student.id);
+
+    if (error) { toast.error("Re-enrollment failed: " + error.message); setSaving(false); return; }
+    toast.success(`🎉 ${student.name} re-enrolled in ${course}!`);
+    onSaved();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card rounded-t-3xl md:rounded-2xl w-full md:max-w-md p-6 shadow-active animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-lg font-bold text-foreground">🔄 Re-enroll Student</h2>
+          <button onClick={onClose}><X className="w-5 h-5 text-muted-foreground" /></button>
+        </div>
+
+        <div className="bg-muted rounded-xl p-3 mb-4">
+          <p className="text-xs font-body text-muted-foreground">Student: <span className="font-semibold text-foreground">{student.name}</span> · {student.roll_number}</p>
+          <p className="text-[10px] font-body text-muted-foreground mt-1">Previous: {student.course} · Status: {student.status}</p>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground font-body">Course</label>
+            <select value={course} onChange={e => setCourse(e.target.value)}
+              className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
+              {COURSE_ORDER.map(c => <option key={c} value={c}>{c} — ₹{COURSE_FEES[c].fee.toLocaleString()} ({COURSE_FEES[c].sessions} sessions)</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground font-body">Batch</label>
+            <select value={batch} onChange={e => setBatch(e.target.value)}
+              className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
+              {BATCHES.map(b => <option key={b}>{b}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground font-body">Payment Plan</label>
+            <select value={paymentPlan} onChange={e => setPaymentPlan(e.target.value)}
+              className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30">
+              {["Full Payment", "50-30-20 Installment", "50-50 Custom"].map(p => <option key={p}>{p}</option>)}
+            </select>
+          </div>
+
+          <div className="bg-accent/30 rounded-xl p-3 border border-accent">
+            <p className="text-xs font-bold text-foreground font-body">Re-enrollment Summary</p>
+            <p className="text-[10px] text-muted-foreground font-body mt-1">• Course: {course} · ₹{courseInfo.fee.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground font-body">• {courseInfo.sessions} fresh sessions · Validity resets from today</p>
+            <p className="text-[10px] text-muted-foreground font-body">• Status set to Active · Roll number kept: {student.roll_number}</p>
+            <p className="text-[10px] text-destructive font-body mt-1">⚠ Previous attendance & payment history is preserved</p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-5">
+          <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-border text-sm font-semibold font-body text-muted-foreground hover:bg-muted">Cancel</button>
+          <button onClick={handleReenroll} disabled={saving}
+            className="flex-1 py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold font-body hover:opacity-90 disabled:opacity-50">
+            {saving ? "Processing..." : "Re-enroll"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
