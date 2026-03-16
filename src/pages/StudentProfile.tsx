@@ -490,7 +490,203 @@ function RecordFeeModal({ student, existingPayments, onClose, onSaved }: {
   );
 }
 
-function InvoiceModal({ payment, student, allPayments, onClose }: { payment: any; student: any; allPayments: any[]; onClose: () => void }) {
+function EditStudentModal({ student, onClose, onSaved }: { student: any; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    name: student.name || "",
+    course: student.course || "Basic",
+    batch: student.batch || "Morning A",
+    status: student.status || "active",
+    dob: student.dob || "",
+    school_name: student.school_name || "",
+    address: student.address || "",
+    email: student.email || "",
+    whatsapp: student.whatsapp || "",
+    emergency_contact: student.emergency_contact || "",
+    father_name: student.father_name || "",
+    father_contact: student.father_contact || "",
+    mother_name: student.mother_name || "",
+    mother_contact: student.mother_contact || "",
+    guardian_name: student.guardian_name || "",
+    fee_amount: student.fee_amount || 0,
+    total_sessions: student.total_sessions || 48,
+    payment_plan: student.payment_plan || "Monthly",
+    discount_percent: student.discount_percent || 0,
+    discount_amount: student.discount_amount || 0,
+    validity_start: student.validity_start || "",
+    validity_end: student.validity_end || "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  const update = (key: string, val: any) => setForm(f => ({ ...f, [key]: val }));
+
+  const handleSave = async () => {
+    if (!form.name.trim()) { toast.error("Name is required"); return; }
+    if (!form.whatsapp.trim()) { toast.error("WhatsApp number is required"); return; }
+    setSaving(true);
+    const { error } = await supabase.from("students").update({
+      name: form.name.trim(),
+      course: form.course,
+      batch: form.batch,
+      status: form.status,
+      dob: form.dob || null,
+      school_name: form.school_name || null,
+      address: form.address || null,
+      email: form.email || null,
+      whatsapp: form.whatsapp,
+      emergency_contact: form.emergency_contact || null,
+      father_name: form.father_name || null,
+      father_contact: form.father_contact || null,
+      mother_name: form.mother_name || null,
+      mother_contact: form.mother_contact || null,
+      guardian_name: form.guardian_name || null,
+      fee_amount: Math.max(0, Number(form.fee_amount)),
+      total_sessions: Math.max(0, Number(form.total_sessions)),
+      payment_plan: form.payment_plan,
+      discount_percent: Math.max(0, Number(form.discount_percent)),
+      discount_amount: Math.max(0, Number(form.discount_amount)),
+      validity_start: form.validity_start || null,
+      validity_end: form.validity_end || null,
+    }).eq("id", student.id);
+    setSaving(false);
+    if (error) { toast.error("Failed: " + error.message); return; }
+    toast.success("Student updated!");
+    onSaved();
+  };
+
+  const fieldClass = "w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30";
+  const labelClass = "text-xs font-semibold text-muted-foreground font-body";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card rounded-t-3xl md:rounded-2xl w-full md:max-w-lg p-6 shadow-active animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-lg font-bold text-foreground">Edit Student</h2>
+          <button onClick={onClose}><X className="w-5 h-5 text-muted-foreground" /></button>
+        </div>
+
+        <div className="space-y-3">
+          {/* Basic Info */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className={labelClass}>Name *</label>
+              <input type="text" value={form.name} onChange={e => update("name", e.target.value)} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Course</label>
+              <select value={form.course} onChange={e => update("course", e.target.value)} className={fieldClass}>
+                {["Basic", "Advanced", "Professional"].map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Batch</label>
+              <select value={form.batch} onChange={e => update("batch", e.target.value)} className={fieldClass}>
+                {["Morning A (9–11 AM)", "Morning B (11–1 PM)", "Afternoon (2–4 PM)", "Evening (4–6 PM)", "Weekend (Sat 10–12)"].map(b => <option key={b}>{b}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Status</label>
+              <select value={form.status} onChange={e => update("status", e.target.value)} className={fieldClass}>
+                {["new", "active", "inactive", "graduated"].map(s => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Date of Birth</label>
+              <input type="date" value={form.dob} onChange={e => update("dob", e.target.value)} className={fieldClass} />
+            </div>
+          </div>
+
+          {/* Contact */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>WhatsApp *</label>
+              <input type="tel" value={form.whatsapp} onChange={e => update("whatsapp", e.target.value)} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Email</label>
+              <input type="email" value={form.email} onChange={e => update("email", e.target.value)} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Emergency Contact</label>
+              <input type="tel" value={form.emergency_contact} onChange={e => update("emergency_contact", e.target.value)} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>School</label>
+              <input type="text" value={form.school_name} onChange={e => update("school_name", e.target.value)} className={fieldClass} />
+            </div>
+            <div className="col-span-2">
+              <label className={labelClass}>Address</label>
+              <input type="text" value={form.address} onChange={e => update("address", e.target.value)} className={fieldClass} />
+            </div>
+          </div>
+
+          {/* Parents */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Father Name</label>
+              <input type="text" value={form.father_name} onChange={e => update("father_name", e.target.value)} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Father Contact</label>
+              <input type="tel" value={form.father_contact} onChange={e => update("father_contact", e.target.value)} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Mother Name</label>
+              <input type="text" value={form.mother_name} onChange={e => update("mother_name", e.target.value)} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Mother Contact</label>
+              <input type="tel" value={form.mother_contact} onChange={e => update("mother_contact", e.target.value)} className={fieldClass} />
+            </div>
+            <div className="col-span-2">
+              <label className={labelClass}>Guardian Name</label>
+              <input type="text" value={form.guardian_name} onChange={e => update("guardian_name", e.target.value)} className={fieldClass} />
+            </div>
+          </div>
+
+          {/* Fee & Sessions */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Fee Amount (₹)</label>
+              <input type="number" min="0" value={form.fee_amount} onChange={e => update("fee_amount", e.target.value)} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Total Sessions</label>
+              <input type="number" min="0" value={form.total_sessions} onChange={e => update("total_sessions", e.target.value)} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Payment Plan</label>
+              <select value={form.payment_plan} onChange={e => update("payment_plan", e.target.value)} className={fieldClass}>
+                {["Full Payment", "50-30-20 Installment", "50-50 Custom", "Monthly"].map(p => <option key={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Discount %</label>
+              <input type="number" min="0" max="100" value={form.discount_percent} onChange={e => update("discount_percent", e.target.value)} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Validity Start</label>
+              <input type="date" value={form.validity_start} onChange={e => update("validity_start", e.target.value)} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Validity End</label>
+              <input type="date" value={form.validity_end} onChange={e => update("validity_end", e.target.value)} className={fieldClass} />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-5">
+          <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-border text-sm font-semibold font-body text-muted-foreground hover:bg-muted">Cancel</button>
+          <button onClick={handleSave} disabled={saving} className="flex-1 py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold font-body hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
   const totalPaid = allPayments.filter(p => p.status === "paid").reduce((a: number, p: any) => a + p.amount, 0);
   const totalFee = student.fee_amount || 0;
 
