@@ -686,7 +686,7 @@ function EditStudentModal({ student, onClose, onSaved }: { student: any; onClose
   );
 }
 
-
+function InvoiceModal({ payment, student, allPayments, onClose }: { payment: any; student: any; allPayments: any[]; onClose: () => void }) {
   const totalPaid = allPayments.filter(p => p.status === "paid").reduce((a: number, p: any) => a + p.amount, 0);
   const totalFee = student.fee_amount || 0;
 
