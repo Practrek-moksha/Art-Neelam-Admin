@@ -322,6 +322,24 @@ export default function StudentProfile() {
           onClose={() => setShowInvoice(null)}
         />
       )}
+
+      {/* Upgrade Modal */}
+      {showUpgrade && (
+        <UpgradeModal
+          student={student}
+          onClose={() => setShowUpgrade(false)}
+          onSaved={() => { setShowUpgrade(false); fetchData(); }}
+        />
+      )}
+
+      {/* Re-enroll Modal */}
+      {showReenroll && (
+        <ReenrollModal
+          student={student}
+          onClose={() => setShowReenroll(false)}
+          onSaved={() => { setShowReenroll(false); fetchData(); }}
+        />
+      )}
     </div>
   );
 }
