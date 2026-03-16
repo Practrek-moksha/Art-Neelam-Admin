@@ -68,7 +68,7 @@ export default function Settings() {
   const exportData = async (table: string) => {
     setExporting(true);
     try {
-      const { data, error } = await supabase.from(table).select("*");
+      const { data, error } = await supabase.from(table as any).select("*");
       if (error) throw error;
       if (!data || data.length === 0) { toast.error(`No data in ${table}`); setExporting(false); return; }
       
