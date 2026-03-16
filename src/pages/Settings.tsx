@@ -101,7 +101,7 @@ export default function Settings() {
           {[
             { label: "Change Admin Password", desc: "Update your login credentials" },
             { label: "Parent Portal Access", desc: "Manage parent login settings" },
-            { label: "Export Data", desc: "Download all studio data as CSV" },
+            { label: "Export Data", desc: "Download all academy data as CSV" },
           ].map(item => (
             <button key={item.label} className="w-full flex items-center justify-between py-3 border-b border-border last:border-0 hover:bg-muted px-2 rounded-lg transition-colors">
               <div className="text-left">
