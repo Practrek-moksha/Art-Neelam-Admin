@@ -108,10 +108,7 @@ export default function Layout({ children }: LayoutProps) {
           <aside className="relative w-72 bg-card h-full shadow-active animate-slide-in overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-border">
               <a href="https://nasdemo1.lovable.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                <div className="relative">
-                  <img src={logoImg} alt="Art Neelam Academy" className="w-28 h-auto rounded-xl" />
-                  <span className="absolute top-0.5 right-0.5 text-[7px] font-bold text-foreground/60">™</span>
-                </div>
+                <img src={logoImg} alt="Art Neelam Academy" className="w-9 h-9 rounded-lg object-contain" />
                 <div>
                   <h1 className="font-display font-bold text-foreground text-sm">Art Neelam Academy</h1>
                   <p className="text-xs text-muted-foreground">Admin Panel</p>
