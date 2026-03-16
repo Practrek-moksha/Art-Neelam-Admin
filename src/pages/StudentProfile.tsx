@@ -493,7 +493,7 @@ function InvoiceModal({ payment, student, allPayments, onClose }: { payment: any
         <div className="p-6 print:p-4" id="invoice-area">
           <div className="flex items-center justify-between mb-6 border-b-2 border-primary pb-4">
             <div className="flex items-center gap-3">
-              <img src={logoImg} alt="Art Neelam" className="w-16 h-16 object-contain" />
+              <img src={logoImg} alt="Art Neelam Academy" className="w-32 h-32 object-contain" />
               <div>
                 <h2 className="font-display font-bold text-foreground text-lg">Art Neelam Academy</h2>
                 <p className="text-[10px] text-muted-foreground font-body">Drawing & Painting Classes</p>

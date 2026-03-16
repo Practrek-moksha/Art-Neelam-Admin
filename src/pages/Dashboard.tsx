@@ -118,7 +118,7 @@ export default function Dashboard() {
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <img src={logoImg} alt="Art Neelam" className="w-12 h-auto" />
+          <img src={logoImg} alt="Art Neelam Academy" className="w-24 h-auto" />
           <div>
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">  Hey, welcome back 🎨</h1>
             <p className="text-muted-foreground text-sm mt-1 font-body">

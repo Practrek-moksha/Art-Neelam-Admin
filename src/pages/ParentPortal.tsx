@@ -130,7 +130,7 @@ export default function ParentPortal() {
       <div className="gradient-hero rounded-3xl p-5">
         <div className="flex items-center justify-between mb-3">
           <a href="https://nasdemo1.lovable.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <img src={logoImg} alt="Art Neelam" className="w-8 h-auto rounded-lg" />
+            <img src={logoImg} alt="Art Neelam Academy" className="w-16 h-auto rounded-lg" />
             <span className="text-sm font-bold text-primary font-body">Parent Portal</span>
           </a>
           {!demoMode && (
@@ -394,7 +394,7 @@ export default function ParentPortal() {
           <div ref={printRef} className="bg-white rounded-2xl shadow-card border border-border overflow-hidden print-area" style={{ maxWidth: 340, margin: "0 auto" }}>
             {/* ID Card Front */}
             <div className="bg-gradient-to-br from-[#1e3a5f] to-[#2d5a8e] p-4 text-white text-center">
-              <img src={logoImg} alt="Art Neelam" className="w-14 h-auto mx-auto mb-2" />
+              <img src={logoImg} alt="Art Neelam Academy" className="w-28 h-auto mx-auto mb-2" />
               <h3 className="font-display font-bold text-sm">Art Neelam Academy</h3>
               <p className="text-[9px] opacity-80">Student Identity Card</p>
             </div>
@@ -429,7 +429,7 @@ export default function ParentPortal() {
           {canGetCertificate ? (
             <>
               <div className="certificate-print-area bg-gradient-to-br from-[#fdf2f8] via-[#fce7f3] to-[#fbcfe8] rounded-2xl shadow-card border-2 border-[#f9a8d4] p-6 text-center" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" } as any}>
-                <img src={logoImg} alt="Art Neelam" className="w-16 h-auto mx-auto mb-3" />
+                <img src={logoImg} alt="Art Neelam Academy" className="w-32 h-auto mx-auto mb-3" />
                 <p className="text-[10px] text-[#be185d] font-body uppercase tracking-widest">Certificate of Completion</p>
                 <div className="my-4 border-t-2 border-b-2 border-[#f9a8d4] py-4">
                   <p className="text-xs text-[#9d174d] font-body">This is to certify that</p>
@@ -485,7 +485,7 @@ export default function ParentPortal() {
             <div className="p-5">
               <div className="flex items-center justify-between mb-4 border-b-2 border-[#1e3a5f] pb-3">
                 <div className="flex items-center gap-2">
-                  <img src={logoImg} alt="Art Neelam" className="w-10 h-auto" />
+                  <img src={logoImg} alt="Art Neelam Academy" className="w-20 h-auto" />
                   <div>
                     <h2 className="font-display font-bold text-[#1e3a5f] text-sm">Art Neelam Academy</h2>
                     <p className="text-[9px] text-[#999] font-body">📞 +91 99677 01108</p>

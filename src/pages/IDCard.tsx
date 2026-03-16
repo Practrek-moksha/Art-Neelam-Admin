@@ -133,7 +133,7 @@ function SingleIDCard({ student }: { student: StudentCard }) {
       
       {/* Top Banner with Logo */}
       <div className="px-5 pt-5 pb-3 flex items-center gap-3 border-b border-border">
-        <img src={logoImg} alt="Art Neelam" className="w-24 h-24 rounded-xl object-contain" />
+        <img src={logoImg} alt="Art Neelam Academy" className="w-32 h-32 rounded-xl object-contain" />
         <div>
           <h2 className="font-display font-bold text-lg leading-tight" style={{ color: "#1e3a5f" }}>Art Neelam Academy</h2>
           <p className="text-[10px] font-body font-medium tracking-wide text-muted-foreground">STUDENT IDENTITY CARD</p>
