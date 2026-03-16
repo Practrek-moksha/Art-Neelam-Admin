@@ -491,6 +491,7 @@ function FormField({ label, value, onChange, type = "text", textarea = false }: 
           className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
       ) : (
         <input type={type} value={value} onChange={e => onChange(e.target.value)}
+          {...(type === "number" ? { min: "0" } : {})}
           className="w-full mt-1 px-3 py-2.5 bg-muted rounded-xl border border-border text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/30" />
       )}
     </div>
