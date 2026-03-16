@@ -297,6 +297,15 @@ export default function StudentProfile() {
         />
       )}
 
+      {/* Edit Student Modal */}
+      {showEditForm && (
+        <EditStudentModal
+          student={student}
+          onClose={() => setShowEditForm(false)}
+          onSaved={() => { setShowEditForm(false); fetchData(); }}
+        />
+      )}
+
       {/* Invoice Modal */}
       {showInvoice && (
         <InvoiceModal
