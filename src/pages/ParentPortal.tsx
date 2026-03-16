@@ -130,7 +130,7 @@ export default function ParentPortal() {
       <div className="gradient-hero rounded-3xl p-5">
         <div className="flex items-center justify-between mb-3">
           <a href="https://nasdemo1.lovable.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <img src={logoImg} alt="Art Neelam" className="w-8 h-auto rounded-lg" />
+            <img src={logoImg} alt="Art Neelam Academy" className="w-16 h-auto rounded-lg" />
             <span className="text-sm font-bold text-primary font-body">Parent Portal</span>
           </a>
           {!demoMode && (
