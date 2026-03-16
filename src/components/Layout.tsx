@@ -48,7 +48,7 @@ export default function Layout({ children }: LayoutProps) {
           <a href="https://nasdemo1.lovable.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="relative">
               <img src={logoImg} alt="Art Neelam Academy" className="w-32 h-auto rounded-xl" />
-              <span className="absolute -top-1 -right-3 text-[8px] font-bold text-foreground/70">™</span>
+              <span className="absolute top-0.5 right-0.5 text-[7px] font-bold text-foreground/60">™</span>
             </div>
             <div>
               <h1 className="font-display text-base font-bold text-foreground leading-tight">Art Neelam</h1>
