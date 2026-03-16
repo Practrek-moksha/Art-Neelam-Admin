@@ -96,10 +96,13 @@ export default function StudentProfile() {
   const parentName = student.father_name || student.mother_name || "Parent";
 
   return (
-    <div className="p-4 md:p-6 space-y-4 max-w-2xl mx-auto">
+    <div className="p-4 md:p-6 space-y-4 max-w-2xl mx-auto pb-24 md:pb-6">
       <div className="flex items-center gap-3">
         <Link to="/students" className="p-2 rounded-xl bg-card border border-border hover:bg-muted transition-colors"><ArrowLeft className="w-4 h-4 text-foreground" /></Link>
-        <h1 className="font-display text-xl font-bold text-foreground">Student Profile</h1>
+        <h1 className="font-display text-xl font-bold text-foreground flex-1">Student Profile</h1>
+        <button onClick={() => setShowEditForm(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-secondary-foreground text-xs font-semibold hover:opacity-80 transition-opacity">
+          <Pencil className="w-3.5 h-3.5" /> Edit
+        </button>
       </div>
 
       {/* Profile Card */}
