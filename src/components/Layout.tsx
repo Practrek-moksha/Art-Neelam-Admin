@@ -137,6 +137,7 @@ export default function Layout({ children }: LayoutProps) {
               </button>
             </div>
           </aside>
+        </div>
       )}
 
       <main className="flex-1 flex flex-col overflow-hidden">
