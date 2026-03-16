@@ -429,7 +429,7 @@ export default function ParentPortal() {
           {canGetCertificate ? (
             <>
               <div className="certificate-print-area bg-gradient-to-br from-[#fdf2f8] via-[#fce7f3] to-[#fbcfe8] rounded-2xl shadow-card border-2 border-[#f9a8d4] p-6 text-center" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" } as any}>
-                <img src={logoImg} alt="Art Neelam" className="w-16 h-auto mx-auto mb-3" />
+                <img src={logoImg} alt="Art Neelam Academy" className="w-32 h-auto mx-auto mb-3" />
                 <p className="text-[10px] text-[#be185d] font-body uppercase tracking-widest">Certificate of Completion</p>
                 <div className="my-4 border-t-2 border-b-2 border-[#f9a8d4] py-4">
                   <p className="text-xs text-[#9d174d] font-body">This is to certify that</p>
