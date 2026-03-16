@@ -149,10 +149,6 @@ export default function Certificate() {
 
               <div className="flex items-end justify-between w-full mt-4 print:mt-10">
                 <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 print:w-20 print:h-20 rounded-full flex items-center justify-center cert-printable"
-                    style={{ background: "radial-gradient(circle, #d4af37 0%, #c9a227 70%, #b8941f 100%)", boxShadow: "0 2px 10px rgba(201,162,39,0.4)" }}>
-                    <Award className="w-7 h-7 print:w-10 print:h-10" style={{ color: "#ffffff" }} />
-                  </div>
                   <p className="text-[7px] print:text-xs font-body mt-1" style={{ color: "#999" }}>{today}</p>
                 </div>
                 <div className="text-center">

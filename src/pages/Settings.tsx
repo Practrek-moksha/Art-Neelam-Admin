@@ -4,7 +4,7 @@ import { Settings as SettingsIcon, Key, Globe, Bell, Shield, ChevronRight, Copy,
 export default function Settings() {
   const [apiKey] = useState("nas_live_sk_" + Math.random().toString(36).substr(2, 24));
   const [copied, setCopied] = useState(false);
-  const [webhookUrl, setWebhookUrl] = useState("https://artneelam.studio/api/leads");
+  const [webhookUrl, setWebhookUrl] = useState("https://artneelam.academy/api/leads");
   const [settings, setSettings] = useState({
     emailNotifications: true,
     whatsappAlerts: true,

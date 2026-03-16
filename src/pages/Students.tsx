@@ -315,6 +315,10 @@ export default function Students() {
                 </div>
               </Link>
               <div className="flex items-center gap-1 flex-shrink-0">
+                <Link to={`/students/${s.id}`}
+                  className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title="Edit student">
+                  <Pencil className="w-4 h-4" />
+                </Link>
                 <button onClick={(e) => { e.preventDefault(); deleteStudent(s.id, s.name); }}
                   className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Delete student">
                   <Trash2 className="w-4 h-4" />
