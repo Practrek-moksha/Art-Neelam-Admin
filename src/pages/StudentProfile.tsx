@@ -22,6 +22,7 @@ export default function StudentProfile() {
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFeeForm, setShowFeeForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
   const [showInvoice, setShowInvoice] = useState<any>(null);
 
   const fetchData = async () => {
