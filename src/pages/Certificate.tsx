@@ -98,7 +98,7 @@ export default function Certificate() {
               className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold font-body transition-all border ${
                 selectedId === s.id ? "border-primary bg-primary-soft text-primary" : "border-border bg-card text-muted-foreground hover:border-primary/50"
               }`}>
-              {eligible && <Award className="w-3 h-3 text-amber-500" />}
+              {eligible && <span className="text-amber-500 text-[10px]">★</span>}
               {s.name.split(" ")[0]}
               <span className="text-[9px] opacity-60">{s.sessionsAttended}/{s.total_sessions}</span>
             </button>
