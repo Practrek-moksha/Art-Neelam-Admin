@@ -78,16 +78,36 @@ export default function Students() {
     return data.publicUrl;
   };
 
+  const [pendingRegistrationId, setPendingRegistrationId] = useState<string | null>(null);
+  const [pendingLeadId, setPendingLeadId] = useState<string | null>(null);
+
   useEffect(() => {
     const state = location.state as any;
     if (state?.prefill) {
+      const p = state.prefill;
+      const courseFee = COURSE_FEES[p.course || "Basic"] || COURSE_FEES.Basic;
       setForm(prev => ({
         ...prev,
-        name: state.prefill.name || "",
-        whatsapp: state.prefill.whatsapp || "",
-        email: state.prefill.email || "",
-        course: state.prefill.course || "Basic",
+        name: p.name || "",
+        whatsapp: p.whatsapp || "",
+        email: p.email || "",
+        course: p.course || "Basic",
+        batch: p.batch || prev.batch,
+        dob: p.dob || "",
+        school_name: p.school_name || "",
+        address: p.address || "",
+        emergency_contact: p.emergency_contact || "",
+        father_name: p.father_name || "",
+        father_contact: p.father_contact || "",
+        mother_name: p.mother_name || "",
+        mother_contact: p.mother_contact || "",
+        guardian_name: p.guardian_name || "",
+        payment_plan: p.payment_plan || "Full Payment",
+        fee_amount: courseFee.fee,
+        total_sessions: courseFee.sessions,
       }));
+      setPendingRegistrationId(p.registrationId || null);
+      setPendingLeadId(p.leadId || null);
       setShowForm(true);
       window.history.replaceState({}, document.title);
     }
