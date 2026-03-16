@@ -168,11 +168,7 @@ export default function Students() {
       roll_number: "TEMP", status: form.status,
     }).select("id").single();
     if (error) {
-      if (error.code === "23505") {
-        toast.error("A student with this WhatsApp number already exists");
-      } else {
-        toast.error("Failed to add student: " + error.message);
-      }
+      toast.error("Failed to add student: " + error.message);
       console.error(error);
     } else {
       // Upload photo if selected
