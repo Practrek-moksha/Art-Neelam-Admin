@@ -46,10 +46,7 @@ export default function Layout({ children }: LayoutProps) {
       <aside className="hidden md:flex flex-col w-64 bg-card border-r border-border shadow-card">
         <div className="p-6 border-b border-border">
           <a href="https://nasdemo1.lovable.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="relative">
-              <img src={logoImg} alt="Art Neelam Academy" className="w-32 h-auto rounded-xl" />
-              <span className="absolute top-0.5 right-0.5 text-[7px] font-bold text-foreground/60">™</span>
-            </div>
+            <img src={logoImg} alt="Art Neelam Academy" className="w-10 h-10 rounded-lg object-contain" />
             <div>
               <h1 className="font-display text-base font-bold text-foreground leading-tight">Art Neelam</h1>
               <p className="text-xs text-muted-foreground font-body">Academy Manager</p>
